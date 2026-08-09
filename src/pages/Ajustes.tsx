@@ -1,17 +1,49 @@
-import { useRef } from 'react'
-import { Download, Moon, Sun, Upload } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Download, LogOut, Moon, RefreshCw, Sun, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { EncabezadoPagina } from '@/components/EncabezadoPagina'
 import { Boton, Campo, Tarjeta } from '@/components/ui'
 import { useAjuste } from '@/hooks/usePlan'
+import { useAuth } from '@/hooks/useAuth'
 import { exportarTodo, importarTodo } from '@/lib/datos'
-import { hayNube } from '@/lib/supabase'
+import { hayNube, supabase } from '@/lib/supabase'
+import { limpiarLocal, sincronizar } from '@/lib/sync'
 import { fechaCorta } from '@/lib/utils'
 
 export default function Ajustes() {
   const [descanso, setDescanso] = useAjuste('descanso', 90)
   const [tema, setTema] = useAjuste<'oscuro' | 'claro'>('tema', 'oscuro')
+  const [sincronizando, setSincronizando] = useState(false)
+  const { sesion } = useAuth()
   const inputArchivo = useRef<HTMLInputElement>(null)
+
+  const sincronizarAhora = async () => {
+    setSincronizando(true)
+    try {
+      const r = await sincronizar()
+      toast.success(
+        r.errores > 0
+          ? `Sincronizado con ${r.errores} error(es)`
+          : `Sincronizado: ${r.subidos} subidos, ${r.bajados} bajados`,
+      )
+    } catch {
+      toast.error('No se ha podido sincronizar')
+    } finally {
+      setSincronizando(false)
+    }
+  }
+
+  const salir = async () => {
+    if (!supabase) return
+    if (!confirm('¿Cerrar sesión? Se sincroniza antes de salir.')) return
+    try {
+      await sincronizar()
+    } catch {
+      toast.warning('No se ha podido sincronizar del todo antes de salir')
+    }
+    await limpiarLocal()
+    await supabase.auth.signOut()
+  }
 
   const cambiarTema = (nuevo: 'oscuro' | 'claro') => {
     setTema(nuevo)
@@ -54,7 +86,35 @@ export default function Ajustes() {
         }
       />
 
-      <div className="space-y-4">
+      <div className="space-y-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-4 lg:space-y-0">
+        {hayNube && sesion && (
+          <Tarjeta>
+            <p className="mb-1 text-xs font-bold text-[var(--color-suave)] uppercase">
+              Cuenta
+            </p>
+            <p className="mb-3 text-sm font-semibold break-all">
+              {sesion.user.email}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Boton
+                variante="secundario"
+                onClick={() => void sincronizarAhora()}
+                disabled={sincronizando}
+              >
+                <RefreshCw
+                  size={18}
+                  className={sincronizando ? 'animate-spin' : undefined}
+                />
+                {sincronizando ? 'Sincronizando…' : 'Sincronizar ahora'}
+              </Boton>
+              <Boton variante="fantasma" onClick={() => void salir()}>
+                <LogOut size={18} />
+                Cerrar sesión
+              </Boton>
+            </div>
+          </Tarjeta>
+        )}
+
         <Tarjeta>
           <label
             htmlFor="descanso"

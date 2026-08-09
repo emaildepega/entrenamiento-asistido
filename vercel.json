@@ -3,18 +3,11 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [
-    {
-      "source": "/((?!assets/|icon-|favicon|manifest|sw\\.js|workbox-|catalogo-).*)",
-      "destination": "/index.html"
-    }
-  ],
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
   "headers": [
     {
       "source": "/catalogo-ejercicios.json",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=86400" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
     }
   ]
 }

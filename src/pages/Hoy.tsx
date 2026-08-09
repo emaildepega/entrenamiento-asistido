@@ -191,36 +191,45 @@ export default function Hoy() {
       {/* ------------------------------------------------------------ gimnasio */}
       {dia?.tipo === 'gimnasio' && (
         <div className="space-y-4">
-          {prescripcion && (
-            <Tarjeta className="bg-[var(--color-acento)]/10">
-              <p className="text-xs font-bold text-[var(--color-suave)] uppercase">
-                Esta semana
-              </p>
-              <p className="mt-1 font-semibold">{prescripcion}</p>
-            </Tarjeta>
-          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {prescripcion && (
+              <Tarjeta className="bg-[var(--color-acento)]/10">
+                <p className="text-xs font-bold text-[var(--color-suave)] uppercase">
+                  Esta semana
+                </p>
+                <p className="mt-1 font-semibold">{prescripcion}</p>
+              </Tarjeta>
+            )}
 
-          {dia.calentamiento && (
-            <Tarjeta>
-              <p className="text-xs font-bold text-[var(--color-suave)] uppercase">
-                Calentamiento
-              </p>
-              <p className="mt-1 font-semibold">{dia.calentamiento}</p>
-            </Tarjeta>
-          )}
+            {dia.calentamiento && (
+              <Tarjeta>
+                <p className="text-xs font-bold text-[var(--color-suave)] uppercase">
+                  Calentamiento
+                </p>
+                <p className="mt-1 font-semibold">{dia.calentamiento}</p>
+              </Tarjeta>
+            )}
+          </div>
 
-          {sesion &&
-            dia.ejercicios.map((e) => (
-              <TarjetaEjercicio
-                key={e.slug}
-                ejercicio={e}
-                catalogoId={catalogoDe(e.slug, e.catalogo_id)}
-                prescripcion={prescripcionDe(dia, posicion.semana, e.prescripcion)}
-                sesionId={sesion.id}
-                onSerieMarcada={() => setArrancarDescanso(Date.now())}
-                onMediaCambiada={() => void cargarMedias()}
-              />
-            ))}
+          {/* En PC caben dos ejercicios por fila sin apretar las fotos */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            {sesion &&
+              dia.ejercicios.map((e) => (
+                <TarjetaEjercicio
+                  key={e.slug}
+                  ejercicio={e}
+                  catalogoId={catalogoDe(e.slug, e.catalogo_id)}
+                  prescripcion={prescripcionDe(
+                    dia,
+                    posicion.semana,
+                    e.prescripcion,
+                  )}
+                  sesionId={sesion.id}
+                  onSerieMarcada={() => setArrancarDescanso(Date.now())}
+                  onMediaCambiada={() => void cargarMedias()}
+                />
+              ))}
+          </div>
         </div>
       )}
 

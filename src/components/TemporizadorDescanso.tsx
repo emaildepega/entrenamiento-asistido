@@ -53,7 +53,7 @@ export function TemporizadorDescanso({
   const progreso = Math.min(100, ((segundos - restante) / segundos) * 100)
 
   return (
-    <div className="pointer-events-auto fixed inset-x-0 bottom-20 z-40 px-4">
+    <div className="pointer-events-auto fixed inset-x-0 bottom-20 z-40 px-4 md:inset-x-auto md:right-6 md:bottom-6 md:w-[30rem] md:px-0">
       <div
         className={`relative overflow-hidden rounded-2xl border shadow-lg ${
           terminado

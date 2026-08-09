@@ -161,7 +161,7 @@ export default function Progreso() {
           evolucionas.
         </Tarjeta>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6 xl:grid xl:grid-cols-2 xl:items-start xl:gap-6 xl:space-y-0">
           {/* ------------------------------------------------ cumplimiento */}
           <section>
             <h2 className="mb-2 text-sm font-bold text-[var(--color-suave)] uppercase">
@@ -262,7 +262,7 @@ export default function Progreso() {
           )}
 
           {/* -------------------------------------------------- bici/horas */}
-          <section>
+          <section className="xl:col-span-2">
             <h2 className="mb-2 text-sm font-bold text-[var(--color-suave)] uppercase">
               Horas de bici por semana
             </h2>

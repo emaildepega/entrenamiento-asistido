@@ -69,7 +69,7 @@ export default function Planes() {
         </Boton>
       </Tarjeta>
 
-      <ul className="space-y-3">
+      <ul className="grid gap-3 lg:grid-cols-2">
         {planes.map((p) => (
           <li key={p.id}>
             <Tarjeta className={p.activo ? 'border-[var(--color-acento)]' : ''}>

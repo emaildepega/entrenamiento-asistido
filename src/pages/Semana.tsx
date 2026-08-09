@@ -84,7 +84,7 @@ export default function Semana() {
         />
       </div>
 
-      <ul className="space-y-3">
+      <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {fechas.map((f) => {
           const pos = posicionEnPlan(plan, f)
           const dia = pos.dia

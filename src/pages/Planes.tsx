@@ -4,6 +4,7 @@ import { Check, FileUp, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { EncabezadoPagina } from '@/components/EncabezadoPagina'
 import { SelectorFecha } from '@/components/SelectorFecha'
+import { ImportarPlan } from '@/components/ImportarPlan'
 import { Boton, Cargando, Etiqueta, Tarjeta } from '@/components/ui'
 import {
   activarPlan,
@@ -14,10 +15,12 @@ import {
 } from '@/lib/datos'
 import { aISO } from '@/lib/plan'
 import { fechaCorta } from '@/lib/utils'
+import { hayNube } from '@/lib/supabase'
 import type { Plan } from '@/lib/tipos'
 
 export default function Planes() {
   const [planes, setPlanes] = useState<Plan[] | null>(null)
+  const [importando, setImportando] = useState(false)
 
   const recargar = useCallback(async () => {
     // Asegura que el plan de partida existe aunque se entre directamente aquí
@@ -60,14 +63,26 @@ export default function Planes() {
       <Tarjeta className="mb-6 border-dashed text-center">
         <FileUp className="mx-auto mb-2 text-[var(--color-suave)]" size={26} />
         <p className="font-semibold">Subir un plan en PDF</p>
-        <p className="mx-auto mt-1 max-w-sm text-sm text-[var(--color-suave)]">
-          Se activa en cuanto conectemos la cuenta de Supabase con la clave de
-          Anthropic. De momento puedes usar el plan que ya está cargado.
+        <p className="mx-auto mt-1 max-w-md text-sm text-[var(--color-suave)]">
+          {hayNube
+            ? 'Lo lee una IA y te enseña lo que ha entendido para que lo corrijas antes de guardarlo.'
+            : 'Necesitas tener la cuenta configurada para poder subir planes.'}
         </p>
-        <Boton variante="secundario" className="mt-3" disabled>
+        <Boton
+          variante="secundario"
+          className="mt-3"
+          disabled={!hayNube}
+          onClick={() => setImportando(true)}
+        >
           Subir plan
         </Boton>
       </Tarjeta>
+
+      <ImportarPlan
+        abierto={importando}
+        onCerrar={() => setImportando(false)}
+        onGuardado={() => void recargar()}
+      />
 
       <ul className="grid gap-3 lg:grid-cols-2">
         {planes.map((p) => (

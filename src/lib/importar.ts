@@ -1,6 +1,37 @@
 import { supabase } from './supabase'
 import { slugificar } from './plan'
-import type { Estructura } from './tipos'
+import type { Dia, Ejercicio, Estructura, Intervalo } from './tipos'
+
+/* Lo que devuelve la función: igual que Estructura pero con listas en vez de
+   mapas, porque la salida estructurada no admite claves libres. */
+interface EntradaSemana {
+  semana: number
+  texto: string
+}
+
+interface IntervaloCrudo extends Intervalo {
+  semana: number
+}
+
+interface EjercicioCrudo extends Omit<Ejercicio, 'slug' | 'prescripcion'> {
+  prescripcion?: EntradaSemana[] | null
+}
+
+interface DiaCrudo
+  extends Omit<Dia, 'ejercicios' | 'prescripcion' | 'intervalos'> {
+  ejercicios?: EjercicioCrudo[]
+  prescripcion?: EntradaSemana[]
+  intervalos?: IntervaloCrudo[] | null
+}
+
+interface EstructuraCruda {
+  nombre?: string
+  descripcion?: string
+  semanas?: number
+  nombres_semana?: string[]
+  avisos?: string[]
+  dias: DiaCrudo[]
+}
 
 /** Convierte un File en base64 sin saltos de línea, que es lo que espera la API. */
 export function aBase64(archivo: File): Promise<string> {
@@ -60,23 +91,42 @@ export async function leerPlanPdf(archivo: File): Promise<PlanLeido> {
     throw new Error(detalle || 'No se ha podido leer el PDF')
   }
 
-  const cruda = (data as { estructura?: Estructura })?.estructura
+  const cruda = (data as { estructura?: EstructuraCruda })?.estructura
   if (!cruda || !Array.isArray(cruda.dias)) {
     throw new Error('La respuesta no tiene la forma esperada')
   }
 
-  // La IA no devuelve los slugs: se calculan aquí para que sean estables.
+  // La salida estructurada no admite mapas abiertos, así que todo lo que va
+  // "por semana" llega como lista y se convierte aquí a la forma de la app.
+  const aMapa = (lista?: EntradaSemana[] | null) => {
+    if (!lista?.length) return undefined
+    const mapa: Record<string, string> = {}
+    for (const { semana, texto } of lista) mapa[String(semana)] = texto
+    return mapa
+  }
+
+  const aMapaIntervalos = (lista?: IntervaloCrudo[] | null) => {
+    if (!lista?.length) return undefined
+    const mapa: Record<string, Intervalo> = {}
+    for (const { semana, ...resto } of lista) mapa[String(semana)] = resto
+    return mapa
+  }
+
   const estructura: Estructura = {
-    ...cruda,
+    semanas: cruda.semanas ?? 1,
     nombres_semana: cruda.nombres_semana?.length
       ? cruda.nombres_semana
-      : Array.from({ length: cruda.semanas }, (_, i) => `Semana ${i + 1}`),
+      : Array.from({ length: cruda.semanas ?? 1 }, (_, i) => `Semana ${i + 1}`),
     avisos: cruda.avisos ?? [],
     dias: cruda.dias.map((d) => ({
       ...d,
+      prescripcion: aMapa(d.prescripcion) ?? {},
+      intervalos: aMapaIntervalos(d.intervalos),
+      // La IA no devuelve los slugs: se calculan aquí para que sean estables.
       ejercicios: (d.ejercicios ?? []).map((e) => ({
         ...e,
         slug: slugificar(e.nombre),
+        prescripcion: aMapa(e.prescripcion),
       })),
     })),
   }
@@ -88,9 +138,8 @@ export async function leerPlanPdf(archivo: File): Promise<PlanLeido> {
     .map((e) => e.nombre)
 
   return {
-    nombre: (cruda as unknown as { nombre?: string }).nombre ?? 'Plan sin nombre',
-    descripcion:
-      (cruda as unknown as { descripcion?: string }).descripcion ?? '',
+    nombre: cruda.nombre ?? 'Plan sin nombre',
+    descripcion: cruda.descripcion ?? '',
     semanas: cruda.semanas ?? 1,
     estructura,
     sinAnimacion,

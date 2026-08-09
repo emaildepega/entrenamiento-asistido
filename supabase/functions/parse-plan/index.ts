@@ -46,6 +46,27 @@ async function catalogo(): Promise<EntradaCatalogo[]> {
 
 /* --------------------------------------------------------------- esquema -- */
 
+// La salida estructurada no admite mapas abiertos (additionalProperties con un
+// esquema) ni límites numéricos como minimum: por eso todo lo que va "por
+// semana" viaja como lista y se convierte a mapa en el navegador.
+const PRESCRIPCION = {
+  type: 'array',
+  description:
+    'una entrada por semana del bloque; si el plan no varía por semanas, una sola con semana 1',
+  items: {
+    type: 'object',
+    properties: {
+      semana: { type: 'integer', description: 'número de semana, empezando en 1' },
+      texto: {
+        type: 'string',
+        description: 'lo que toca esa semana, p. ej. "3×10 con peso cómodo"',
+      },
+    },
+    required: ['semana', 'texto'],
+    additionalProperties: false,
+  },
+}
+
 const EJERCICIO = {
   type: 'object',
   properties: {
@@ -57,25 +78,31 @@ const EJERCICIO = {
     },
     youtube_id: { type: 'null' },
     prescripcion: {
-      type: ['object', 'null'],
+      type: ['array', 'null'],
       description:
-        'series y repeticiones por semana del bloque, con claves "1".."N". null si aplica la de la sesión',
-      additionalProperties: { type: 'string' },
+        'series y repeticiones propias de este ejercicio por semana; null si vale la de la sesión',
+      items: PRESCRIPCION.items,
     },
   },
   required: ['nombre', 'catalogo_id', 'youtube_id', 'prescripcion'],
   additionalProperties: false,
 }
 
-const INTERVALO = {
-  type: ['object', 'null'],
-  properties: {
-    series: { type: 'integer' },
-    trabajo_min: { type: 'number' },
-    descanso_min: { type: 'number' },
+const INTERVALOS = {
+  type: ['array', 'null'],
+  description:
+    'solo si la sesión describe series de trabajo y recuperación con tiempos concretos',
+  items: {
+    type: 'object',
+    properties: {
+      semana: { type: 'integer' },
+      series: { type: 'integer' },
+      trabajo_min: { type: 'number' },
+      descanso_min: { type: 'number' },
+    },
+    required: ['semana', 'series', 'trabajo_min', 'descanso_min'],
+    additionalProperties: false,
   },
-  required: ['series', 'trabajo_min', 'descanso_min'],
-  additionalProperties: false,
 }
 
 const DIA = {
@@ -96,16 +123,8 @@ const DIA = {
     },
     calentamiento: { type: ['string', 'null'] },
     ejercicios: { type: 'array', items: EJERCICIO },
-    prescripcion: {
-      type: 'object',
-      description: 'lo que toca esa sesión por semana del bloque, claves "1".."N"',
-      additionalProperties: { type: 'string' },
-    },
-    intervalos: {
-      type: ['object', 'null'],
-      description: 'configuración del temporizador por semana, claves "1".."N"',
-      additionalProperties: INTERVALO,
-    },
+    prescripcion: PRESCRIPCION,
+    intervalos: INTERVALOS,
   },
   required: [
     'key', 'nombre', 'tipo', 'hora_inicio', 'hora_fin', 'enfoque', 'aviso',
@@ -119,7 +138,7 @@ const ESQUEMA = {
   properties: {
     nombre: { type: 'string' },
     descripcion: { type: 'string' },
-    semanas: { type: 'integer', minimum: 1 },
+    semanas: { type: 'integer', description: 'cuántas semanas dura el bloque' },
     nombres_semana: {
       type: 'array',
       items: { type: 'string' },
@@ -147,11 +166,12 @@ Reglas:
    de bici, carrera o remo hechos como sesión de cardio; "salida" para salidas
    largas; "descanso" para el día libre.
 3. Si el plan trae una tabla de progresión por semanas, reparte lo que toca en
-   "prescripcion", con una entrada por semana ("1", "2", …). Si el plan es de
-   una sola semana, pon semanas: 1 y usa solo la clave "1".
+   "prescripcion": una entrada por semana, numeradas desde 1 hasta el total.
+   Si el plan es de una sola semana, pon semanas: 1 y una única entrada.
 4. Rellena "intervalos" únicamente cuando la sesión describa series de trabajo
    y recuperación con tiempos concretos (por ejemplo "5×4 min con 3 min de
-   recuperación"). En cualquier otro caso, null.
+   recuperación"), con una entrada por semana que los tenga. Si ninguna semana
+   los describe, null. Si una semana concreta no tiene intervalos, omítela.
 5. "aviso" solo para advertencias que el plan marque como importantes para ese
    día concreto. Los consejos generales van en "avisos".
 6. Para cada ejercicio de sala, elige el catalogo_id cuyo MOVIMIENTO coincida
@@ -260,10 +280,25 @@ Deno.serve(async (req) => {
       return json({ error: 'Respuesta vacía del modelo' }, 502)
     }
 
-    return json({
-      estructura: JSON.parse(bloque.text),
-      uso: respuesta.usage,
-    })
+    const estructura = JSON.parse(bloque.text)
+
+    // Red de seguridad: un id que no esté en el catálogo daría una animación
+    // rota, así que se descarta y el ejercicio se queda para asignar a mano.
+    const idsValidos = new Set((await catalogo()).map((e) => e.id))
+    let descartados = 0
+    for (const dia of estructura.dias ?? []) {
+      for (const ej of dia.ejercicios ?? []) {
+        if (ej.catalogo_id && !idsValidos.has(ej.catalogo_id)) {
+          ej.catalogo_id = null
+          descartados++
+        }
+      }
+    }
+    if (descartados > 0) {
+      console.warn(`parse-plan: ${descartados} id(s) fuera del catálogo`)
+    }
+
+    return json({ estructura, uso: respuesta.usage })
   } catch (e) {
     console.error('parse-plan', e)
     return json(

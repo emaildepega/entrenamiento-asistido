@@ -122,6 +122,7 @@ export default function Hoy() {
 
   const prescripcion = dia ? prescripcionDe(dia, posicion.semana) : ''
   const intervalo = dia ? intervaloDe(dia, posicion.semana) : null
+  const tieneEjercicios = (dia?.ejercicios?.length ?? 0) > 0
 
   const terminarSesion = async () => {
     if (!sesion) return
@@ -188,16 +189,33 @@ export default function Hoy() {
         </Tarjeta>
       )}
 
-      {/* ------------------------------------------------------------ gimnasio */}
-      {dia?.tipo === 'gimnasio' && (
+      {/* --------------------------------------------------------- la sesión */}
+      {/* No se mira el tipo para decidir qué pintar: se mira lo que la sesión
+          tiene de verdad. Un plan importado puede etiquetar como "cardio" un
+          día que además lleva ejercicios de sala, y aun así deben salir. */}
+      {dia && dia.tipo !== 'descanso' && (
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             {prescripcion && (
-              <Tarjeta className="bg-[var(--color-acento)]/10">
+              <Tarjeta
+                className={
+                  tieneEjercicios
+                    ? 'bg-[var(--color-acento)]/10'
+                    : 'bg-[var(--color-acento)]/10 sm:col-span-2'
+                }
+              >
                 <p className="text-xs font-bold text-[var(--color-suave)] uppercase">
-                  Esta semana
+                  {dia.enfoque || 'Esta semana'}
                 </p>
-                <p className="mt-1 font-semibold">{prescripcion}</p>
+                <p
+                  className={
+                    tieneEjercicios
+                      ? 'mt-1 font-semibold'
+                      : 'mt-2 text-2xl leading-tight font-bold'
+                  }
+                >
+                  {prescripcion}
+                </p>
               </Tarjeta>
             )}
 
@@ -211,48 +229,33 @@ export default function Hoy() {
             )}
           </div>
 
-          {/* En PC caben dos ejercicios por fila sin apretar las fotos */}
-          <div className="grid gap-4 lg:grid-cols-2">
-            {sesion &&
-              dia.ejercicios.map((e) => (
-                <TarjetaEjercicio
-                  key={e.slug}
-                  ejercicio={e}
-                  catalogoId={catalogoDe(e.slug, e.catalogo_id)}
-                  prescripcion={prescripcionDe(
-                    dia,
-                    posicion.semana,
-                    e.prescripcion,
-                  )}
-                  sesionId={sesion.id}
-                  onSerieMarcada={() => setArrancarDescanso(Date.now())}
-                  onMediaCambiada={() => void cargarMedias()}
-                />
-              ))}
-          </div>
-        </div>
-      )}
-
-      {/* ------------------------------------------------------ bici / salida */}
-      {(dia?.tipo === 'cardio' || dia?.tipo === 'salida') && (
-        <div className="space-y-4">
-          <Tarjeta>
-            <p className="text-xs font-bold text-[var(--color-suave)] uppercase">
-              {dia.enfoque}
-            </p>
-            <p className="mt-2 text-2xl leading-tight font-bold">
-              {prescripcion}
-            </p>
-          </Tarjeta>
-
           {intervalo && (
-            <Boton
-              className="w-full"
-              onClick={() => setIntervalosAbiertos(true)}
-            >
+            <Boton className="w-full" onClick={() => setIntervalosAbiertos(true)}>
               <Timer size={20} />
               Temporizador de intervalos
             </Boton>
+          )}
+
+          {/* En PC caben dos ejercicios por fila sin apretar las fotos */}
+          {tieneEjercicios && (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {sesion &&
+                dia.ejercicios.map((e) => (
+                  <TarjetaEjercicio
+                    key={e.slug}
+                    ejercicio={e}
+                    catalogoId={catalogoDe(e.slug, e.catalogo_id)}
+                    prescripcion={prescripcionDe(
+                      dia,
+                      posicion.semana,
+                      e.prescripcion,
+                    )}
+                    sesionId={sesion.id}
+                    onSerieMarcada={() => setArrancarDescanso(Date.now())}
+                    onMediaCambiada={() => void cargarMedias()}
+                  />
+                ))}
+            </div>
           )}
         </div>
       )}

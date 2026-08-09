@@ -32,7 +32,10 @@ export default function App() {
     void sincronizarAjustes()
     void sincronizar().then((r) => {
       if (r.errores > 0) {
-        toast.warning(`${r.errores} cambios no se han podido sincronizar`)
+        toast.warning(
+          `${r.errores} cambios no se han podido sincronizar`,
+          { description: r.detalle ?? undefined, duration: 10000 },
+        )
       }
     })
 

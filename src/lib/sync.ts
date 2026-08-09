@@ -1,5 +1,5 @@
 import { local } from './db'
-import { CLAVE_NATURAL } from './datos'
+import { CLAVE_NATURAL, idDeSesion } from './datos'
 import { supabase, hayNube } from './supabase'
 import type { MediaEjercicio, Plan, Serie, Sesion } from './tipos'
 
@@ -13,6 +13,8 @@ export interface ResultadoSync {
   bajados: number
   subidos: number
   errores: number
+  /** el primer error de verdad, para poder enseñarlo en vez de adivinar */
+  detalle: string | null
 }
 
 async function usuarioActual(): Promise<string | null> {
@@ -21,12 +23,66 @@ async function usuarioActual(): Promise<string | null> {
   return data.session?.user.id ?? null
 }
 
+const claveSesion = (s: { plan_id: string; fecha: string }) =>
+  `${s.plan_id}|${s.fecha}`
+
+/**
+ * Antes las sesiones llevaban un id aleatorio, así que el móvil y el ordenador
+ * creaban dos distintos para el mismo día y las series acababan apuntando a una
+ * sesión que en la nube no existía. Aquí se unifican: manda el id de la nube y,
+ * si no lo hay, el que sale de la fecha y el plan.
+ */
+async function reconciliarSesiones(remotas: Sesion[]): Promise<void> {
+  const idRemotoPorClave = new Map(remotas.map((s) => [claveSesion(s), s.id]))
+  const locales = await local.sesiones.toArray()
+
+  for (const sesion of locales) {
+    const idBueno =
+      idRemotoPorClave.get(claveSesion(sesion)) ??
+      (await idDeSesion(sesion.plan_id, sesion.fecha))
+
+    if (idBueno === sesion.id) continue
+
+    // Las series se quedarían huérfanas: se les cambia el padre antes de nada
+    const series = await local.series
+      .where('sesion_id')
+      .equals(sesion.id)
+      .toArray()
+    for (const serie of series) {
+      await local.series.delete(serie.id)
+      await local.series.put({ ...serie, sesion_id: idBueno })
+    }
+    await local.sesiones.delete(sesion.id)
+    await local.sesiones.put({ ...sesion, id: idBueno })
+  }
+}
+
+/** Series que apuntan a una sesión que ya no existe: no se pueden subir nunca. */
+async function limpiarSeriesHuerfanas(): Promise<number> {
+  const idsSesion = new Set((await local.sesiones.toArray()).map((s) => s.id))
+  const huerfanas = (await local.series.toArray()).filter(
+    (s) => !idsSesion.has(s.sesion_id),
+  )
+  for (const s of huerfanas) await local.series.delete(s.id)
+  return huerfanas.length
+}
+
 export async function sincronizar(): Promise<ResultadoSync> {
-  const resultado: ResultadoSync = { bajados: 0, subidos: 0, errores: 0 }
+  const resultado: ResultadoSync = {
+    bajados: 0,
+    subidos: 0,
+    errores: 0,
+    detalle: null,
+  }
   if (!hayNube || !supabase) return resultado
 
   const userId = await usuarioActual()
   if (!userId) return resultado
+
+  const anotarError = (mensaje: string, cuantos: number) => {
+    resultado.errores += cuantos
+    if (!resultado.detalle) resultado.detalle = mensaje
+  }
 
   /* 1. Bajar lo que hay en la nube -------------------------------------- */
   const [planes, sesiones, series, medias] = await Promise.all([
@@ -43,8 +99,12 @@ export async function sincronizar(): Promise<ResultadoSync> {
     await local.planes.bulkPut(sinUsuario(planes.data) as unknown as Plan[])
     resultado.bajados += planes.data.length
   }
+
+  const sesionesRemotas = sinUsuario(sesiones.data) as unknown as Sesion[]
+  await reconciliarSesiones(sesionesRemotas)
+
   if (sesiones.data) {
-    await local.sesiones.bulkPut(sinUsuario(sesiones.data) as unknown as Sesion[])
+    await local.sesiones.bulkPut(sesionesRemotas)
     resultado.bajados += sesiones.data.length
   }
   if (series.data) {
@@ -61,16 +121,9 @@ export async function sincronizar(): Promise<ResultadoSync> {
     resultado.bajados += medias.data.length
   }
 
-  /* 2. Subir lo que solo existe en este dispositivo ---------------------- */
-  const idsRemotos = {
-    planes: new Set((planes.data ?? []).map((p) => p.id as string)),
-    sesiones: new Set((sesiones.data ?? []).map((s) => s.id as string)),
-    series: new Set((series.data ?? []).map((s) => s.id as string)),
-    medias: new Set(
-      (medias.data ?? []).map((m) => m.ejercicio_slug as string),
-    ),
-  }
+  await limpiarSeriesHuerfanas()
 
+  /* 2. Subir lo que solo existe en este dispositivo ---------------------- */
   const subir = async (
     tabla: 'planes' | 'sesiones' | 'series' | 'media_ejercicios',
     filas: object[],
@@ -82,30 +135,15 @@ export async function sincronizar(): Promise<ResultadoSync> {
         filas.map((f) => ({ ...f, user_id: userId })),
         { onConflict: CLAVE_NATURAL[tabla] },
       )
-    if (error) resultado.errores += filas.length
+    if (error) anotarError(`${tabla}: ${error.message}`, filas.length)
     else resultado.subidos += filas.length
   }
 
-  await subir(
-    'planes',
-    (await local.planes.toArray()).filter((p) => !idsRemotos.planes.has(p.id)),
-  )
-  await subir(
-    'sesiones',
-    (await local.sesiones.toArray()).filter(
-      (s) => !idsRemotos.sesiones.has(s.id),
-    ),
-  )
-  await subir(
-    'series',
-    (await local.series.toArray()).filter((s) => !idsRemotos.series.has(s.id)),
-  )
-  await subir(
-    'media_ejercicios',
-    (await local.media.toArray()).filter(
-      (m) => !idsRemotos.medias.has(m.ejercicio_slug),
-    ),
-  )
+  // El orden importa: una sesión necesita su plan, y una serie su sesión.
+  await subir('planes', await local.planes.toArray())
+  await subir('sesiones', await local.sesiones.toArray())
+  await subir('series', await local.series.toArray())
+  await subir('media_ejercicios', await local.media.toArray())
 
   /* 3. Vaciar la cola de pendientes -------------------------------------- */
   const pendientes = (await local.pendientes.toArray()).sort((a, b) =>
@@ -129,9 +167,16 @@ export async function sincronizar(): Promise<ResultadoSync> {
       }
       await local.pendientes.delete(op.id)
       resultado.subidos++
-    } catch {
-      // Se queda en la cola para el próximo intento; no se pierde nada.
-      resultado.errores++
+    } catch (e) {
+      const mensaje = e instanceof Error ? e.message : String(e)
+      // Lo que ya se ha subido arriba, o apunta a algo que no existe, no va a
+      // funcionar por reintentarlo: se saca de la cola para no dejar el aviso
+      // colgado para siempre.
+      if (/duplicate key|foreign key|violates/i.test(mensaje)) {
+        await local.pendientes.delete(op.id)
+      } else {
+        anotarError(`${op.tabla}: ${mensaje}`, 1)
+      }
     }
   }
 

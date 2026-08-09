@@ -146,6 +146,28 @@ export async function listarSesiones(planId?: string): Promise<Sesion[]> {
   return filas.sort((a, b) => b.fecha.localeCompare(a.fecha))
 }
 
+/**
+ * El identificador de una sesión se deriva del plan y la fecha, no es aleatorio.
+ * Así el móvil y el ordenador generan el MISMO id para la sesión del mismo día,
+ * y las series que cuelgan de ella siguen encajando cuando se sincroniza. Con
+ * ids aleatorios cada dispositivo creaba el suyo y las series acababan
+ * apuntando a una sesión que en la nube no existía.
+ */
+export async function idDeSesion(
+  planId: string,
+  fechaISO: string,
+): Promise<string> {
+  const datos = new TextEncoder().encode(`sesion:${planId}:${fechaISO}`)
+  const resumen = new Uint8Array(await crypto.subtle.digest('SHA-256', datos))
+  // Se le da forma de UUID v5 para que Postgres lo acepte como uuid
+  resumen[6] = (resumen[6] & 0x0f) | 0x50
+  resumen[8] = (resumen[8] & 0x3f) | 0x80
+  const hex = [...resumen.slice(0, 16)]
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`
+}
+
 export async function abrirSesion(
   planId: string,
   fechaISO: string,
@@ -155,7 +177,7 @@ export async function abrirSesion(
   const existente = await sesionDe(planId, fechaISO)
   if (existente) return existente
   const nueva: Sesion = {
-    id: crypto.randomUUID(),
+    id: await idDeSesion(planId, fechaISO),
     plan_id: planId,
     fecha: fechaISO,
     dia_key: diaKey,

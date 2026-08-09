@@ -25,6 +25,7 @@ export default function Ajustes() {
   const { sesion } = useAuth()
   const [sincronizando, setSincronizando] = useState(false)
   const [pendientes, setPendientes] = useState(0)
+  const [ultimoError, setUltimoError] = useState<string | null>(null)
   const inputArchivo = useRef<HTMLInputElement>(null)
 
   const revisarPendientes = useCallback(async () => {
@@ -40,8 +41,12 @@ export default function Ajustes() {
     try {
       const r = await sincronizar()
       await revisarPendientes()
+      setUltimoError(r.detalle)
       if (r.errores > 0) {
-        toast.warning(`Quedan ${r.errores} cambios sin subir`)
+        toast.warning(`Quedan ${r.errores} cambios sin subir`, {
+          description: r.detalle ?? undefined,
+          duration: 10000,
+        })
       } else {
         toast.success('Todo al día')
       }
@@ -143,6 +148,11 @@ export default function Ajustes() {
                     Se reintentan solos al recuperar la conexión. Si el aviso no
                     se va, descártalos: son cambios que ya están guardados aquí.
                   </p>
+                  {ultimoError && (
+                    <p className="mt-2 rounded-lg bg-black/20 p-2 font-mono text-[11px] break-all">
+                      {ultimoError}
+                    </p>
+                  )}
                   <Boton
                     variante="fantasma"
                     className="mt-1 min-h-10 px-0"

@@ -15,6 +15,7 @@ const Planes = lazy(() => import('@/pages/Planes'))
 const Ajustes = lazy(() => import('@/pages/Ajustes'))
 const Ejercicio = lazy(() => import('@/pages/Ejercicio'))
 const Historial = lazy(() => import('@/pages/Historial'))
+const PlanDetalle = lazy(() => import('@/pages/PlanDetalle'))
 const Entrar = lazy(() => import('@/pages/Entrar'))
 
 export default function App() {
@@ -67,6 +68,7 @@ export default function App() {
               <Route path="/progreso" element={<Progreso />} />
               <Route path="/historial" element={<Historial />} />
               <Route path="/planes" element={<Planes />} />
+              <Route path="/plan/:id" element={<PlanDetalle />} />
               <Route path="/ajustes" element={<Ajustes />} />
               <Route path="/ejercicio/:slug" element={<Ejercicio />} />
             </Routes>

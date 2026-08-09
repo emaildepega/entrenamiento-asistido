@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { parseISO } from 'date-fns'
-import { AlertTriangle, CalendarPlus, Flag, Timer } from 'lucide-react'
+import {
+  AlertTriangle,
+  CalendarPlus,
+  ClipboardList,
+  Flag,
+  Timer,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { EncabezadoPagina } from '@/components/EncabezadoPagina'
 import { TarjetaEjercicio } from '@/components/TarjetaEjercicio'
@@ -90,7 +96,33 @@ export default function Hoy() {
     [medias],
   )
 
-  if (cargando || !plan || !posicion) return <Cargando />
+  if (cargando) return <Cargando />
+
+  // Con cuenta se empieza vacío: no se inventa ningún plan por su cuenta
+  if (!plan || !posicion) {
+    return (
+      <>
+        <EncabezadoPagina
+          titulo={fechaLarga(fecha)}
+          subtitulo="Todavía no tienes ningún plan"
+        />
+        <Tarjeta className="py-10 text-center">
+          <ClipboardList
+            className="mx-auto mb-3 text-[var(--color-suave)]"
+            size={32}
+          />
+          <p className="font-semibold">Aquí verás qué te toca cada día</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-[var(--color-suave)]">
+            En cuanto tengas un plan activo, esta pantalla te dirá la sesión del
+            día con sus ejercicios y su animación.
+          </p>
+          <Link to="/planes">
+            <Boton className="mt-4">Añadir un plan</Boton>
+          </Link>
+        </Tarjeta>
+      </>
+    )
+  }
 
   const Icono = dia ? iconoDeDia(dia) : Flag
 

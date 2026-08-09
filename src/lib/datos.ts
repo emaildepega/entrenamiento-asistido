@@ -69,8 +69,11 @@ export function planActivo(): Promise<Plan | null> {
       if (activo) return activo
       if (planes.length > 0) return planes[0]
 
-      // Primera vez: se deja cargado el plan de partida para que la app sirva
-      // desde el minuto uno, sin tener que importar nada.
+      // Sin cuenta la app es de usar y tirar, así que se deja cargado el plan
+      // de ejemplo para que sirva desde el minuto uno. Con cuenta no: cada
+      // usuario empieza vacío y decide qué plan quiere.
+      if (hayNube) return null
+
       const semilla = crearPlanSemilla()
       await guardarPlan(semilla)
       return semilla
@@ -79,6 +82,14 @@ export function planActivo(): Promise<Plan | null> {
     })
   }
   return resolviendoPlan
+}
+
+/** Carga el plan de ejemplo a petición del usuario. */
+export async function cargarPlanDeEjemplo(): Promise<Plan> {
+  const semilla = crearPlanSemilla()
+  await guardarPlan(semilla)
+  await activarPlan(semilla.id)
+  return semilla
 }
 
 export async function guardarPlan(plan: Plan): Promise<void> {

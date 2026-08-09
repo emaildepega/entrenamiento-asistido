@@ -1,36 +1,68 @@
-import { useRef, useState } from 'react'
-import { Download, LogOut, Moon, RefreshCw, Sun, Upload } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  AlertTriangle,
+  Download,
+  LogOut,
+  Moon,
+  RefreshCw,
+  Sun,
+  Trash2,
+  Upload,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { EncabezadoPagina } from '@/components/EncabezadoPagina'
 import { Boton, Campo, Tarjeta } from '@/components/ui'
-import { useAjuste } from '@/hooks/usePlan'
+import { useAjustes } from '@/hooks/useAjustes'
 import { useAuth } from '@/hooks/useAuth'
 import { exportarTodo, importarTodo } from '@/lib/datos'
+import { local } from '@/lib/db'
 import { hayNube, supabase } from '@/lib/supabase'
-import { limpiarLocal, sincronizar } from '@/lib/sync'
+import { limpiarLocal, pendientesCount, sincronizar } from '@/lib/sync'
 import { fechaCorta } from '@/lib/utils'
 
 export default function Ajustes() {
-  const [descanso, setDescanso] = useAjuste('descanso', 90)
-  const [tema, setTema] = useAjuste<'oscuro' | 'claro'>('tema', 'oscuro')
-  const [sincronizando, setSincronizando] = useState(false)
+  const { ajustes, cambiar } = useAjustes()
   const { sesion } = useAuth()
+  const [sincronizando, setSincronizando] = useState(false)
+  const [pendientes, setPendientes] = useState(0)
   const inputArchivo = useRef<HTMLInputElement>(null)
+
+  const revisarPendientes = useCallback(async () => {
+    setPendientes(await pendientesCount())
+  }, [])
+
+  useEffect(() => {
+    void revisarPendientes()
+  }, [revisarPendientes])
 
   const sincronizarAhora = async () => {
     setSincronizando(true)
     try {
       const r = await sincronizar()
-      toast.success(
-        r.errores > 0
-          ? `Sincronizado con ${r.errores} error(es)`
-          : `Sincronizado: ${r.subidos} subidos, ${r.bajados} bajados`,
-      )
+      await revisarPendientes()
+      if (r.errores > 0) {
+        toast.warning(`Quedan ${r.errores} cambios sin subir`)
+      } else {
+        toast.success('Todo al día')
+      }
     } catch {
-      toast.error('No se ha podido sincronizar')
+      toast.error('No se ha podido conectar')
     } finally {
       setSincronizando(false)
     }
+  }
+
+  const descartarPendientes = async () => {
+    if (
+      !confirm(
+        'Se descartan los cambios que no han podido subirse. Lo que ya está en la nube no se toca. ¿Seguir?',
+      )
+    ) {
+      return
+    }
+    await local.pendientes.clear()
+    await revisarPendientes()
+    toast.success('Cambios pendientes descartados')
   }
 
   const salir = async () => {
@@ -43,12 +75,6 @@ export default function Ajustes() {
     }
     await limpiarLocal()
     await supabase.auth.signOut()
-  }
-
-  const cambiarTema = (nuevo: 'oscuro' | 'claro') => {
-    setTema(nuevo)
-    if (nuevo === 'claro') document.documentElement.dataset.tema = 'claro'
-    else delete document.documentElement.dataset.tema
   }
 
   const exportar = async () => {
@@ -67,8 +93,7 @@ export default function Ajustes() {
 
   const importar = async (archivo: File) => {
     try {
-      const datos = JSON.parse(await archivo.text())
-      await importarTodo(datos)
+      await importarTodo(JSON.parse(await archivo.text()))
       toast.success('Datos importados. Recarga la app para verlos.')
     } catch {
       toast.error('El archivo no tiene el formato esperado')
@@ -81,7 +106,7 @@ export default function Ajustes() {
         titulo="Ajustes"
         subtitulo={
           hayNube
-            ? 'Los datos se sincronizan con tu cuenta'
+            ? 'Tu configuración y tus datos van con la cuenta'
             : 'Los datos se guardan en este dispositivo'
         }
       />
@@ -92,9 +117,44 @@ export default function Ajustes() {
             <p className="mb-1 text-xs font-bold text-[var(--color-suave)] uppercase">
               Cuenta
             </p>
-            <p className="mb-3 text-sm font-semibold break-all">
+            <p className="mb-2 text-sm font-semibold break-all">
               {sesion.user.email}
             </p>
+            <p className="mb-3 text-sm text-[var(--color-suave)]">
+              Todo lo que registras se guarda primero en este dispositivo y
+              luego se sube a tu cuenta. Así funciona sin cobertura en el
+              gimnasio y luego lo ves igual desde el ordenador.
+            </p>
+
+            {pendientes > 0 && (
+              <div className="mb-3 flex gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+                <AlertTriangle
+                  size={18}
+                  className="mt-0.5 shrink-0 text-amber-400"
+                />
+                <div className="text-sm">
+                  <p className="font-bold">
+                    {pendientes}{' '}
+                    {pendientes === 1
+                      ? 'cambio sin subir'
+                      : 'cambios sin subir'}
+                  </p>
+                  <p className="mt-1 text-[var(--color-suave)]">
+                    Se reintentan solos al recuperar la conexión. Si el aviso no
+                    se va, descártalos: son cambios que ya están guardados aquí.
+                  </p>
+                  <Boton
+                    variante="fantasma"
+                    className="mt-1 min-h-10 px-0"
+                    onClick={() => void descartarPendientes()}
+                  >
+                    <Trash2 size={16} />
+                    Descartar pendientes
+                  </Boton>
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-2">
               <Boton
                 variante="secundario"
@@ -127,8 +187,10 @@ export default function Ajustes() {
               id="descanso"
               type="number"
               inputMode="numeric"
-              value={descanso}
-              onChange={(e) => setDescanso(Number(e.target.value) || 90)}
+              value={ajustes.descanso_seg}
+              onChange={(e) =>
+                cambiar({ descanso_seg: Number(e.target.value) || 90 })
+              }
               className="max-w-28 text-center"
             />
             <span className="text-sm text-[var(--color-suave)]">segundos</span>
@@ -141,16 +203,16 @@ export default function Ajustes() {
           </p>
           <div className="flex gap-2">
             <Boton
-              variante={tema === 'oscuro' ? 'primario' : 'secundario'}
-              onClick={() => cambiarTema('oscuro')}
+              variante={ajustes.tema === 'oscuro' ? 'primario' : 'secundario'}
+              onClick={() => cambiar({ tema: 'oscuro' })}
               className="flex-1"
             >
               <Moon size={18} />
               Oscuro
             </Boton>
             <Boton
-              variante={tema === 'claro' ? 'primario' : 'secundario'}
-              onClick={() => cambiarTema('claro')}
+              variante={ajustes.tema === 'claro' ? 'primario' : 'secundario'}
+              onClick={() => cambiar({ tema: 'claro' })}
               className="flex-1"
             >
               <Sun size={18} />

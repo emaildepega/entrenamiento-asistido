@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, History, Settings2, CirclePlay } from 'lucide-react'
+import {
+  Check,
+  CirclePlay,
+  History,
+  Settings2,
+  Undo2,
+} from 'lucide-react'
 import { AnimacionEjercicio } from './AnimacionEjercicio'
 import { SelectorAnimacion } from './SelectorAnimacion'
 import { Campo, Etiqueta, Tarjeta } from './ui'
@@ -118,6 +124,7 @@ export function TarjetaEjercicio({
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`Ver vídeo de ${ejercicio.nombre}`}
+                title="Ver el vídeo en YouTube"
                 className="rounded-lg p-2 text-[var(--color-suave)] hover:text-red-500"
               >
                 <CirclePlay size={20} />
@@ -125,7 +132,8 @@ export function TarjetaEjercicio({
             )}
             <Link
               to={`/ejercicio/${ejercicio.slug}`}
-              aria-label={`Histórico de ${ejercicio.nombre}`}
+              aria-label={`Ver el histórico de ${ejercicio.nombre}`}
+              title="Ver cuánto levantaste otras veces"
               className="rounded-lg p-2 text-[var(--color-suave)] hover:text-[var(--color-texto)]"
             >
               <History size={18} />
@@ -133,6 +141,7 @@ export function TarjetaEjercicio({
             <button
               onClick={() => setSelectorAbierto(true)}
               aria-label={`Cambiar animación de ${ejercicio.nombre}`}
+              title="Cambiar la animación de este ejercicio"
               className="rounded-lg p-2 text-[var(--color-suave)] hover:text-[var(--color-texto)]"
             >
               <Settings2 size={18} />
@@ -194,12 +203,21 @@ export function TarjetaEjercicio({
               />
               <button
                 onClick={() => void marcar(s)}
-                aria-label={`Marcar serie ${s.serie} como hecha`}
+                aria-label={
+                  s.hecha
+                    ? `Deshacer la serie ${s.serie}`
+                    : `Marcar serie ${s.serie} como hecha`
+                }
+                title={
+                  s.hecha
+                    ? 'Toca otra vez para deshacerla'
+                    : 'Marcar como hecha'
+                }
                 aria-pressed={s.hecha}
                 className={cn(
                   'grid size-11 shrink-0 place-items-center rounded-xl border transition',
                   s.hecha
-                    ? 'border-green-500 bg-green-500 text-white'
+                    ? 'border-green-500 bg-green-500 text-white hover:border-amber-400 hover:bg-amber-500'
                     : 'border-[var(--color-borde)] text-[var(--color-suave)]',
                 )}
               >
@@ -210,10 +228,14 @@ export function TarjetaEjercicio({
         </div>
 
         {hechas > 0 && (
-          <div className="mt-3">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <Etiqueta tono={hechas === series.length ? 'ok' : 'acento'}>
               {hechas} de {series.length} series
             </Etiqueta>
+            <span className="inline-flex items-center gap-1 text-xs text-[var(--color-suave)]">
+              <Undo2 size={12} />
+              Toca una serie verde para deshacerla
+            </span>
           </div>
         )}
       </div>

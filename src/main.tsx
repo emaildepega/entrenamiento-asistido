@@ -1,11 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
+import { ajustesLocales, aplicarTema } from './lib/ajustes'
 import './index.css'
 
-// Tema guardado por el usuario (oscuro por defecto: se entrena a las 6 de la mañana)
-const tema = localStorage.getItem('ea:tema')
-if (tema === '"claro"') document.documentElement.dataset.tema = 'claro'
+// Se aplica antes de pintar nada, para que no dé un fogonazo blanco al arrancar
+aplicarTema(ajustesLocales().tema)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

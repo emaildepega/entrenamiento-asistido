@@ -4,7 +4,10 @@ import { parseISO } from 'date-fns'
 import {
   ArrowLeft,
   Check,
+  ChevronDown,
+  ChevronUp,
   CirclePlay,
+  Copy,
   Pencil,
   Plus,
   Settings2,
@@ -117,6 +120,42 @@ export default function PlanDetalle() {
     })
   }, [])
 
+  /** Cambia un ejercicio de sitio dentro de su día. */
+  const moverEjercicio = useCallback(
+    (indiceDia: number, desde: number, salto: number) => {
+      setPlan((p) => {
+        if (!p) return p
+        const dias = [...p.estructura.dias]
+        const ejercicios = [...dias[indiceDia].ejercicios]
+        const hasta = desde + salto
+        if (hasta < 0 || hasta >= ejercicios.length) return p
+        ;[ejercicios[desde], ejercicios[hasta]] = [
+          ejercicios[hasta],
+          ejercicios[desde],
+        ]
+        dias[indiceDia] = { ...dias[indiceDia], ejercicios }
+        return { ...p, estructura: { ...p.estructura, dias } }
+      })
+    },
+    [],
+  )
+
+  /** Copia el plan entero para usarlo de punto de partida. */
+  const duplicar = async () => {
+    if (!plan) return
+    const copia: Plan = {
+      ...structuredClone(plan),
+      id: crypto.randomUUID(),
+      nombre: `${plan.nombre} (copia)`,
+      activo: false,
+      fecha_inicio: aISO(siguienteLunes()),
+      created_at: new Date().toISOString(),
+    }
+    await guardarPlan(copia)
+    toast.success('Plan duplicado: edítalo a tu gusto')
+    navegar(`/plan/${copia.id}`)
+  }
+
   const semanas = useMemo(
     () => (plan ? Array.from({ length: plan.semanas }, (_, i) => i + 1) : []),
     [plan],
@@ -174,10 +213,22 @@ export default function PlanDetalle() {
         subtitulo={`${plan.semanas} ${plan.semanas === 1 ? 'semana' : 'semanas'} · ${sesiones} ${sesiones === 1 ? 'sesión' : 'sesiones'} por semana · ${totalEjercicios} ${totalEjercicios === 1 ? 'ejercicio' : 'ejercicios'}`}
         accion={
           !editando ? (
-            <Boton variante="secundario" onClick={() => setEditando(true)}>
-              <Pencil size={18} />
-              Editar
-            </Boton>
+            <div className="flex shrink-0 gap-2">
+              <Boton variante="secundario" onClick={() => setEditando(true)}>
+                <Pencil size={18} />
+                Editar
+              </Boton>
+              {!esNuevo && (
+                <Boton
+                  variante="secundario"
+                  onClick={() => void duplicar()}
+                  title="Crear un plan nuevo partiendo de este"
+                >
+                  <Copy size={18} />
+                  <span className="hidden sm:inline">Duplicar</span>
+                </Boton>
+              )}
+            </div>
           ) : undefined
         }
       />
@@ -392,11 +443,32 @@ export default function PlanDetalle() {
                           </span>
                           {editando && (
                             <>
+                              <span className="flex shrink-0 flex-col">
+                                <button
+                                  onClick={() => moverEjercicio(di, ei, -1)}
+                                  disabled={ei === 0}
+                                  aria-label={`Subir ${ej.nombre}`}
+                                  title="Subir"
+                                  className="rounded p-0.5 text-[var(--color-suave)] hover:text-[var(--color-texto)] disabled:opacity-25"
+                                >
+                                  <ChevronUp size={16} />
+                                </button>
+                                <button
+                                  onClick={() => moverEjercicio(di, ei, 1)}
+                                  disabled={ei === dia.ejercicios.length - 1}
+                                  aria-label={`Bajar ${ej.nombre}`}
+                                  title="Bajar"
+                                  className="rounded p-0.5 text-[var(--color-suave)] hover:text-[var(--color-texto)] disabled:opacity-25"
+                                >
+                                  <ChevronDown size={16} />
+                                </button>
+                              </span>
                               <button
                                 onClick={() =>
                                   setCambiandoAnimacion({ dia: di, ej: ei })
                                 }
                                 aria-label={`Cambiar animación de ${ej.nombre}`}
+                                title="Cambiar la animación"
                                 className="shrink-0 rounded-lg p-2 text-[var(--color-suave)] hover:text-[var(--color-texto)]"
                               >
                                 <Settings2 size={16} />

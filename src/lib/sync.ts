@@ -1,4 +1,5 @@
 import { local } from './db'
+import { CLAVE_NATURAL } from './datos'
 import { supabase, hayNube } from './supabase'
 import type { MediaEjercicio, Plan, Serie, Sesion } from './tipos'
 
@@ -77,7 +78,10 @@ export async function sincronizar(): Promise<ResultadoSync> {
     if (filas.length === 0) return
     const { error } = await supabase!
       .from(tabla)
-      .upsert(filas.map((f) => ({ ...f, user_id: userId })))
+      .upsert(
+        filas.map((f) => ({ ...f, user_id: userId })),
+        { onConflict: CLAVE_NATURAL[tabla] },
+      )
     if (error) resultado.errores += filas.length
     else resultado.subidos += filas.length
   }
@@ -117,7 +121,10 @@ export async function sincronizar(): Promise<ResultadoSync> {
         const fila = op.datos as Record<string, unknown>
         const { error } = await supabase
           .from(op.tabla)
-          .upsert({ ...fila, user_id: userId })
+          .upsert(
+            { ...fila, user_id: userId },
+            { onConflict: CLAVE_NATURAL[op.tabla] },
+          )
         if (error) throw error
       }
       await local.pendientes.delete(op.id)

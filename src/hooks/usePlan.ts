@@ -18,25 +18,3 @@ export function usePlanActivo() {
 
   return { plan, cargando, recargar }
 }
-
-/** Ajustes guardados en el navegador (no merecen viajar a la nube). */
-export function useAjuste<T>(clave: string, inicial: T) {
-  const [valor, setValor] = useState<T>(() => {
-    try {
-      const guardado = localStorage.getItem(`ea:${clave}`)
-      return guardado ? (JSON.parse(guardado) as T) : inicial
-    } catch {
-      return inicial
-    }
-  })
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(`ea:${clave}`, JSON.stringify(valor))
-    } catch {
-      /* modo incógnito con almacenamiento bloqueado */
-    }
-  }, [clave, valor])
-
-  return [valor, setValor] as const
-}

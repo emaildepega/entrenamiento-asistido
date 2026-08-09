@@ -16,6 +16,21 @@ import type {
  * falla, se deja en la cola de pendientes para reintentarla al recuperar la
  * conexión.
  */
+/**
+ * Cada tabla tiene, además del id, una clave natural que no se puede repetir
+ * (una sesión por día y plan, una serie por ejercicio y número…). Si dos
+ * dispositivos crean la misma fila por su cuenta, los ids son distintos pero la
+ * clave natural choca. Diciéndole a Supabase cuál es esa clave, la segunda
+ * escritura actualiza la fila en vez de fallar con un 409.
+ */
+export const CLAVE_NATURAL: Record<string, string> = {
+  planes: 'id',
+  sesiones: 'user_id,plan_id,fecha',
+  series: 'sesion_id,ejercicio_slug,serie',
+  media_ejercicios: 'user_id,ejercicio_slug',
+  ajustes: 'user_id',
+}
+
 async function replicar(
   tabla: 'planes' | 'sesiones' | 'series' | 'media_ejercicios',
   fila: Record<string, unknown>,
@@ -27,7 +42,7 @@ async function replicar(
     if (!userId) return
     const { error } = await supabase
       .from(tabla)
-      .upsert({ ...fila, user_id: userId })
+      .upsert({ ...fila, user_id: userId }, { onConflict: CLAVE_NATURAL[tabla] })
     if (error) throw error
   } catch {
     await encolar(tabla, 'upsert', fila)

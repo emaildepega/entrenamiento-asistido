@@ -7,6 +7,7 @@ import { AvisoSinConexion } from '@/components/AvisoSinConexion'
 import { Cargando } from '@/components/ui'
 import { useAuth } from '@/hooks/useAuth'
 import { sincronizar } from '@/lib/sync'
+import { sincronizarAjustes } from '@/hooks/useAjustes'
 
 const Hoy = lazy(() => import('@/pages/Hoy'))
 const Semana = lazy(() => import('@/pages/Semana'))
@@ -28,6 +29,7 @@ export default function App() {
     if (!usuario || yaSincronizado.current === usuario) return
     yaSincronizado.current = usuario
 
+    void sincronizarAjustes()
     void sincronizar().then((r) => {
       if (r.errores > 0) {
         toast.warning(`${r.errores} cambios no se han podido sincronizar`)

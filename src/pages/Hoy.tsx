@@ -14,7 +14,8 @@ import { TarjetaEjercicio } from '@/components/TarjetaEjercicio'
 import { TemporizadorDescanso } from '@/components/TemporizadorDescanso'
 import { TemporizadorIntervalos } from '@/components/TemporizadorIntervalos'
 import { AreaTexto, Boton, Campo, Cargando, Etiqueta, Tarjeta } from '@/components/ui'
-import { useAjuste, usePlanActivo } from '@/hooks/usePlan'
+import { usePlanActivo } from '@/hooks/usePlan'
+import { useAjustes } from '@/hooks/useAjustes'
 import { useWakeLock } from '@/hooks/useWakeLock'
 import {
   abrirSesion,
@@ -45,7 +46,7 @@ export default function Hoy() {
 
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [medias, setMedias] = useState<MediaEjercicio[]>([])
-  const [segundosDescanso, setSegundosDescanso] = useAjuste('descanso', 90)
+  const { ajustes, cambiar: cambiarAjustes } = useAjustes()
   const [arrancarDescanso, setArrancarDescanso] = useState<number | null>(null)
   const [intervalosAbiertos, setIntervalosAbiertos] = useState(false)
   const [cerrando, setCerrando] = useState(false)
@@ -373,8 +374,8 @@ export default function Hoy() {
       </button>
 
       <TemporizadorDescanso
-        segundos={segundosDescanso}
-        onCambiarSegundos={setSegundosDescanso}
+        segundos={ajustes.descanso_seg}
+        onCambiarSegundos={(s) => cambiarAjustes({ descanso_seg: s })}
         arrancarEn={arrancarDescanso}
         onCerrar={() => setArrancarDescanso(null)}
       />

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Entrenamiento Asistido</title>
+<style>
+:root{--bg:#f3f5f8;--surface:#fff;--ink:#172033;--muted:#667085;--line:#d8dee8;--blue:#2563eb;--blue2:#1d4ed8;--green:#15803d;--orange:#c2410c;--shadow:0 8px 30px #10182812}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}button,input,textarea{font:inherit}button{border:0;border-radius:11px;padding:11px 15px;font-weight:800;cursor:pointer;background:var(--blue);color:#fff}button:hover{filter:brightness(.97)}button.secondary{background:#e9efff;color:#174ea6}button.ghost{background:transparent;color:var(--blue2);padding:8px}.wrap{max-width:1120px;margin:auto;padding:0 14px}
+header{position:sticky;top:0;z-index:100;background:#101828;color:#fff;box-shadow:0 3px 15px #0002}.top{height:70px;display:flex;align-items:center;justify-content:space-between;gap:15px}.brand{font-size:22px;font-weight:900}.top button{background:#fff;color:#101828}
+main{padding:24px 0 80px}.hero{background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;border-radius:22px;padding:24px;margin-bottom:25px;box-shadow:var(--shadow)}.hero h1{margin:0 0 8px;font-size:30px}.hero p{margin:0;opacity:.9}.section{margin:28px 0}.section h2{margin:0 0 14px}
+.planCard{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow);cursor:pointer}.planCard:hover{transform:translateY(-1px)}.planMeta{display:flex;justify-content:space-between;gap:10px;align-items:start}.planCard h3{margin:0 0 6px}.muted{color:var(--muted)}.pill{display:inline-block;padding:5px 9px;border-radius:999px;background:#eef2ff;color:#1d4ed8;font-size:12px;font-weight:800}.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.daySection{border-radius:24px;padding:0 18px 22px;margin:0 0 32px;border:2px solid;overflow:hidden}.dayHeader{margin:0 -18px 18px;padding:17px 20px;display:flex;align-items:center;gap:13px;color:#fff}.dayHeader .num{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#1d4ed8;font-size:18px;font-weight:950}.dayHeader h2{margin:0;font-size:23px}.dayHeader small{display:block;opacity:.9;font-size:12px;font-weight:700;margin-top:2px}.dayA{background:#f7fbff;border-color:#93c5fd}.dayA .dayHeader{background:#1d4ed8}.dayA .dayHeader .num{color:#1d4ed8}.dayB{background:#f7fff9;border-color:#86efac}.dayB .dayHeader{background:#15803d}.dayB .dayHeader .num{color:#15803d}.dayC{background:#fffaf5;border-color:#fdba74}.dayC .dayHeader{background:#c2410c}.dayC .dayHeader .num{color:#c2410c}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}.exercise{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;overflow:hidden;cursor:pointer;transition:.15s;box-shadow:0 3px 16px #1018280b}.exercise:hover{transform:translateY(-2px);box-shadow:0 9px 28px #10182816}.exercise h3{margin:10px 0 6px}.small{font-size:13px}
+.cardThumb{position:relative;width:100%;height:165px;margin:0 0 14px;border-radius:12px;background:#e5e7eb;overflow:hidden;cursor:pointer;isolation:isolate}.cardThumb img{position:absolute;inset:0;width:100%;height:100%;max-width:100%;object-fit:cover;display:block}.cardThumbShade{position:absolute;inset:0;background:linear-gradient(180deg,#0001 25%,#0009 100%);pointer-events:none}.cardPlay{position:absolute;right:12px;bottom:12px;width:46px;height:46px;padding:0;border-radius:50%;background:#ff0000;color:#fff;font-size:20px;box-shadow:0 4px 14px #0008;z-index:2}
+.detail{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,.55fr);gap:16px}.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}.video{aspect-ratio:16/9;background:#000;border-radius:14px;overflow:hidden}.video iframe{width:100%;height:100%;border:0;display:block}.videoNote{font-size:12px;color:var(--muted);margin-top:8px}.actions{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}.check{display:flex;gap:9px;margin:11px 0;align-items:flex-start}.checkNum{background:#e0e7ff;color:#1e40af;width:27px;height:27px;border-radius:50%;display:grid;place-items:center;font-weight:900;flex:0 0 27px}
+.fixedBack{position:fixed;left:16px;top:84px;z-index:1000;box-shadow:0 6px 24px #10182855;border:2px solid #fff}.hidden{display:none!important}.timer{font-size:32px;font-weight:900;text-align:center;padding:12px;background:#f8fafc;border-radius:14px;margin-top:12px}.danger{background:#fff7ed;border-left:4px solid #f59e0b;padding:12px;border-radius:6px;margin-top:14px}
+.modal{position:fixed;inset:0;background:#10182899;z-index:2000;display:flex;align-items:center;justify-content:center;padding:18px}.modalBox{background:#fff;border-radius:20px;max-width:760px;width:100%;max-height:90vh;overflow:auto;padding:22px;box-shadow:0 20px 70px #0005}.modalBox h2{margin-top:0}.drop{border:2px dashed #98a2b3;border-radius:16px;padding:35px;text-align:center;background:#f8fafc}.drop.drag{background:#eef4ff;border-color:var(--blue)}.fileInput{display:none}.progress{height:10px;background:#e4e7ec;border-radius:99px;overflow:hidden}.progress i{display:block;height:100%;width:0;background:var(--blue);transition:.2s}.formRow{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{margin:12px 0}.field label{display:block;font-weight:800;font-size:13px;margin-bottom:6px}.field input,.field textarea{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff}.field textarea{min-height:90px;resize:vertical}.importExercise{display:grid;grid-template-columns:1.5fr .7fr .7fr 1.2fr auto;gap:8px;align-items:center;margin:8px 0}.importExercise input{min-width:0;padding:9px;border:1px solid #cbd5e1;border-radius:9px}.match{font-size:12px;color:var(--green);font-weight:800}.noMatch{font-size:12px;color:var(--orange);font-weight:800}
+@media(max-width:850px){.detail{grid-template-columns:1fr}.formRow{grid-template-columns:1fr}.importExercise{grid-template-columns:1fr 1fr}.importExercise .wide{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<header><div class="wrap top"><div class="brand">🏋️ Entrenamiento Asistido</div><button onclick="openImport()">＋ Añadir plan</button></div></header>
+
+<main class="wrap">
+<section id="home">
+<div class="hero"><h1>Tu entrenador visual</h1><p>Guarda tus planes, consulta cada ejercicio y aprende cómo ejecutarlo con vídeos.</p></div>
+<div class="section"><h2>Mis planes</h2><div id="plans" class="plans"></div></div>
+</section>
+
+<section id="workout" class="hidden">
+<button class="secondary fixedBack" onclick="goHome()">← Volver</button>
+<div class="hero"><span class="pill" style="background:#fff;color:#174ea6" id="planPill"></span><h1 id="planTitle"></h1><p id="planDesc"></p></div>
+<div id="days"></div>
+</section>
+
+<section id="detail" class="hidden">
+<button class="secondary fixedBack" onclick="goWorkout()">← Volver al plan</button>
+<div class="detail">
+<div class="card"><span class="pill" id="dDay"></span><h2 id="dName"></h2><p class="muted" id="dSets"></p>
+<div class="video"><iframe id="frame" title="Vídeo de demostración" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<div class="videoNote">El vídeo se reproduce directamente dentro de la aplicación.</div>
+<div class="actions"><button onclick="startTimer()">⏱️ Descanso 90 s</button><a id="yt" target="_blank" rel="noopener"><button class="secondary" type="button">↗ Abrir en YouTube</button></a></div><div class="timer hidden" id="timer">01:30</div></div>
+<div class="card"><h2>Cómo hacerlo</h2><p id="intro"></p><hr><h3>Comprueba esto</h3><div id="checks"></div><div class="danger"><b>Primero aprende el movimiento.</b><br>Si eres principiante, empieza con poco peso y prioriza la técnica.</div></div>
+</div>
+</section>
+</main>
+
+<div id="modal" class="modal hidden">
+<div class="modalBox">
+<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2 id="modalTitle">Añadir plan</h2><button class="secondary" onclick="closeModal()">Cerrar</button></div>
+<div id="importStep1">
+<p class="muted">Sube un PDF o Word con tu plan. El archivo se procesa en tu navegador; no se envía a un servidor.</p>
+<div id="drop" class="drop"><p style="font-size:38px;margin:0">📄</p><h3>Suelta aquí tu plan</h3><p>o</p><label><button type="button">Elegir archivo</button><input id="file" class="fileInput" type="file" accept=".pdf,.docx,.txt"></label><p id="fileName" class="muted"></p></div>
+<div style="margin-top:14px"><div class="progress"><i id="prog"></i></div><p id="status" class="muted"></p></div>
+<div class="field"><label>Si el documento no se puede leer, también puedes pegar el texto</label><textarea id="paste" placeholder="Pega aquí el contenido del plan..."></textarea></div>
+<button onclick="parsePasted()">Interpretar texto</button>
+</div>
+
+<div id="importStep2" class="hidden">
+<p class="muted">He encontrado estos ejercicios. Revisa los nombres y las series/repeticiones antes de guardar.</p>
+<div class="field"><label>Nombre del plan</label><input id="newPlanName" placeholder="Mi nuevo plan"></div>
+<div id="importExercises"></div>
+<div class="actions"><button onclick="saveImportedPlan()">✓ Guardar plan</button><button class="secondary" onclick="backToImport()">← Volver</button></div>
+<p class="muted" style="font-size:12px">Los vídeos se asignan automáticamente cuando el nombre coincide con nuestra biblioteca. Los ejercicios sin coincidencia quedan listos para que les asignes un vídeo más adelante.</p>
+</div>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+<script>
+const VIDEO_LIB = [
+{name:"Press banca plano con mancuernas",keys:["press banca","press de banca","banca plano","press plano"],id:"ZaDlbm8E8Tg",day:"Fuerza A · lunes",intro:"Túmbate en el banco, pies firmes en el suelo y una mancuerna en cada mano. Baja de forma controlada y empuja hacia arriba.",check:["Cabeza y espalda apoyadas en el banco","Pies firmes en el suelo","Una mancuerna en cada mano","Los dos brazos suben y bajan de forma controlada"]},
+{name:"Press inclinado con mancuernas",keys:["press inclinado","press inclinado mancuernas"],id:"oZVCBM9f8Eo",day:"Fuerza A · lunes",intro:"Ajusta el respaldo aproximadamente a 30–45°. Siéntate, recuéstate con la cabeza apoyada y empuja las dos mancuernas hacia arriba.",check:["Respaldo 30–45°","Pies en el suelo","Mancuernas a ambos lados del pecho","No conviertas el ejercicio en un press militar"]},
+{name:"Press militar sentado",keys:["press militar","press hombros","press de hombros"],id:"poD_-zaG9hk",day:"Fuerza A · lunes",intro:"Siéntate con la espalda apoyada. Empieza con las mancuernas a la altura de los hombros y empújalas hacia arriba.",check:["Espalda apoyada","Pies firmes","Mancuernas a la altura de los hombros al comenzar","No arquees exageradamente la espalda"]},
+{name:"Extensión de tríceps tumbado",keys:["extension de triceps","extensión de tríceps","triceps tumbado","press frances"],id:"R6SdxvZGK5s",day:"Fuerza A · lunes",intro:"Túmbate y lleva las mancuernas encima del pecho. Dobla los codos para bajar las mancuernas hacia la cabeza y vuelve a extenderlos.",check:["Parte superior de los brazos relativamente quieta","El movimiento ocurre principalmente en los codos","Mancuernas controladas","No dejes que el peso caiga hacia la cara"]},
+{name:"Crunch en declinado",keys:["crunch","abdominales declinado","crunch declinado"],id:"FRzQXeN1hro",day:"Fuerza A · lunes",intro:"Fija los pies bajo el soporte del banco declinado. Eleva el tronco de forma controlada y vuelve sin tirar del cuello.",check:["Pies bien anclados","Movimiento principalmente del tronco","Cuello relajado","Sin rebotes"]},
+{name:"Plancha frontal",keys:["plancha frontal","plancha"],id:"gfj5MWBNxxU",day:"Core",intro:"Apoya antebrazos y puntas de los pies. Mantén el cuerpo como una línea recta.",check:["Codos debajo de los hombros","Puntas de los pies apoyadas","Cadera ni hundida ni demasiado elevada","Respira con normalidad"]},
+{name:"Elevación de piernas en declinado",keys:["elevacion de piernas","elevación de piernas","leg raise","elevaciones piernas"],id:"b_6BdouMVc0",day:"Remo + core · miércoles",intro:"Túmbate en el banco declinado y fija el cuerpo. Eleva las piernas de forma controlada y bájalas sin balancearte.",check:["Movimiento controlado","Evita usar impulso","Baja solo hasta donde mantengas el control","No fuerces la zona lumbar"]},
+{name:"Russian twist con mancuerna",keys:["russian twist","twist ruso","giros rusos"],id:"qYym5L-B9hs",day:"Remo + core · miércoles",intro:"Siéntate, sujeta una mancuerna con ambas manos y gira el tronco hacia un lado y hacia el otro.",check:["Mancuerna con ambas manos","Giro controlado del tronco","No balancees la espalda","Empieza con poco peso"]},
+{name:"Plancha lateral",keys:["plancha lateral"],id:"N_s9em1xTqU",day:"Remo + core · miércoles",intro:"Apóyate sobre un antebrazo y el lateral de los pies. Eleva la cadera y mantén el cuerpo alineado.",check:["Codo debajo del hombro","Cadera elevada","Cabeza alineada con el tronco","Mantén la posición"]},
+{name:"Superman",keys:["superman"],id:"UXUGfiNL1lI",day:"Remo + core · miércoles",intro:"Túmbate boca abajo. Eleva suavemente brazos y piernas y vuelve al suelo de forma controlada.",check:["Movimiento suave","No necesitas levantar mucho brazos y piernas","Cuello neutro","No rebotes"]},
+{name:"Remo a una mano apoyado en banco",keys:["remo a una mano","remo mancuerna","remo unilateral"],id:"PgpQ4-jHiq4",day:"Fuerza B · viernes",intro:"Apoya una mano y una rodilla en el banco. Con la otra mano tira de la mancuerna hacia la cadera y bájala lentamente.",check:["Espalda estable","Mano y rodilla de apoyo firmes","Codo cerca del cuerpo","La mancuerna baja de forma controlada"]},
+{name:"Pullover con mancuerna",keys:["pullover"],id:"tcHaHIQStsk",day:"Fuerza B · viernes",intro:"Túmbate en el banco y sujeta una mancuerna con ambas manos sobre el pecho. Llévala detrás de la cabeza y vuelve.",check:["Una mancuerna, agarrada con ambas manos","Movimiento en arco","Controla especialmente la bajada","No conviertas el movimiento en una extensión de tríceps"]},
+{name:"Face pull con banda",keys:["face pull","facepull"],id:"PYj77in44ms",day:"Fuerza B · viernes",intro:"Ancla la banda de forma segura. De pie, tira de la banda hacia la cara llevando los codos hacia atrás.",check:["Anclaje seguro","Banda frente a ti al comenzar","Codos hacia atrás","No uses un peso que te haga perder el control"]},
+{name:"Curl de bíceps sentado",keys:["curl de biceps","curl bíceps","curl biceps"],id:"O0ffoQlgCwA",day:"Fuerza B · viernes",intro:"Siéntate con una mancuerna en cada mano. Dobla los codos para acercar las mancuernas a los hombros y baja lentamente.",check:["Codos cerca del cuerpo","No balancees el tronco","Sube y baja con control","Pies firmes en el suelo"]},
+{name:"Pallof press con banda",keys:["pallof press","pallof"],id:"P16SQlmWj1o",day:"Fuerza B · viernes",intro:"Colócate de lado al punto de anclaje. Sujeta la banda junto al pecho, extiende los brazos y vuelve sin dejar que el tronco gire.",check:["Banda anclada de forma segura","Cuerpo de lado al anclaje","Extiende brazos sin girarte","Resiste la rotación"]}
+];
+
+const SEED = {id:"plan-inicial",name:"Plan de 4 semanas",desc:"Plan original · Fuerza, remo y core",days:[
+{name:"Lunes · Fuerza A",type:"A",exercises:[
+["Press banca plano con mancuernas","3×10",""],["Press inclinado con mancuernas","3×10",""],["Press militar sentado","3×10",""],["Extensión de tríceps tumbado","3×10",""],["Crunch en declinado","3×12",""]]},
+{name:"Miércoles · Remo + core",type:"B",exercises:[
+["Elevación de piernas en declinado","3×12",""],["Russian twist con mancuerna","3×20",""],["Plancha lateral","3×30 s por lado",""],["Superman","3×12",""],["Plancha frontal","3×30 s",""]]},
+{name:"Viernes · Fuerza B",type:"C",exercises:[
+["Remo a una mano apoyado en banco","3×10",""],["Pullover con mancuerna","3×10",""],["Face pull con banda","3×10",""],["Curl de bíceps sentado","3×10",""],["Pallof press con banda","3×10",""]]}
+]};
+
+let plans = JSON.parse(localStorage.getItem("ea_plans")||"null");
+if(!plans){plans=[SEED];localStorage.setItem("ea_plans",JSON.stringify(plans))}
+let currentPlan=null,currentExercise=null,interval=null,importData=null;
+
+function save(){localStorage.setItem("ea_plans",JSON.stringify(plans))}
+function norm(x){return x.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9 ]/g," ")}
+function matchVideo(name){let n=norm(name);return VIDEO_LIB.find(v=>v.keys.some(k=>n.includes(norm(k))||norm(k).includes(n)))||null}
+function renderPlans(){plansEl.innerHTML=plans.map((p,i)=>`<div class="planCard" onclick="openPlan(${i})"><div class="planMeta"><div><span class="pill">${p.days.length} sesiones</span><h3>${escapeHtml(p.name)}</h3><p class="muted">${escapeHtml(p.desc||"Plan de entrenamiento")}</p></div><button class="secondary" onclick="event.stopPropagation();deletePlan(${i})">Eliminar</button></div></div>`).join("")}
+function escapeHtml(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
+function openPlan(i){currentPlan=plans[i];location.hash="plan-"+currentPlan.id;home.classList.add("hidden");detail.classList.add("hidden");workout.classList.remove("hidden");planTitle.textContent=currentPlan.name;planDesc.textContent=currentPlan.desc||"";planPill.textContent="PLAN";renderDays();scrollTo(0,0)}
+function renderDays(){days.innerHTML=currentPlan.days.map((d,di)=>`<div class="daySection day${d.type||["A","B","C"][di%3]}"><div class="dayHeader"><div class="num">${di+1}</div><div><h2>${escapeHtml(d.name)}</h2><small>${d.exercises.length} ejercicios</small></div></div><div class="grid">${d.exercises.map((e,ei)=>renderExercise(e,d,di,ei)).join("")}</div></div>`).join("")}
+function renderExercise(e,d,di,ei){let m=matchVideo(e[0]);let id=m?.id||"";return `<div class="exercise" onclick="openExercise(${di},${ei})"><div class="cardThumb" onclick="${id?`openVideoCard(event,'${id}')`:`event.stopPropagation();openExercise(${di},${ei})`}" title="${id?"Reproducir vídeo":"Abrir ejercicio"}">${id?`<img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="Vista previa" loading="lazy"><div class="cardThumbShade"></div><button class="cardPlay" onclick="openVideoCard(event,'${id}')">▶</button>`:`<div style="height:100%;display:grid;place-items:center;color:#667085;font-weight:800">Sin vídeo asignado</div>`}</div><span class="pill">${escapeHtml(d.name)}</span><h3>${escapeHtml(e[0])}</h3><p class="small muted">${escapeHtml(e[1]||"")}</p></div>`}
+function openExercise(di,ei){let e=currentPlan.days[di].exercises[ei],m=matchVideo(e[0]);currentExercise={e,m};history.pushState({detail:true},"","#ejercicio");workout.classList.add("hidden");detail.classList.remove("hidden");dDay.textContent=currentPlan.days[di].name;dName.textContent=e[0];dSets.textContent=e[1]||"";intro.textContent=m?.intro||"Este ejercicio aún no tiene una demostración asignada en la biblioteca.";checks.innerHTML=(m?.check||[]).map((x,i)=>`<div class="check"><div class="checkNum">${i+1}</div><div>${escapeHtml(x)}</div></div>`).join("");frame.src=m?`https://www.youtube.com/embed/${m.id}?rel=0&playsinline=1`:"";yt.href=m?`https://www.youtube.com/watch?v=${m.id}`:"#";timer.classList.add("hidden");scrollTo(0,0)}
+function openVideoCard(event,id){event.stopPropagation();window.open("https://www.youtube.com/watch?v="+id,"_blank","noopener")}
+function goHome(){frame.src="";detail.classList.add("hidden");workout.classList.add("hidden");home.classList.remove("hidden");currentPlan=null;if(location.hash)history.pushState(null,"",location.pathname+location.search);scrollTo(0,0)}
+function goWorkout(){frame.src="";detail.classList.add("hidden");workout.classList.remove("hidden");if(location.hash)history.back();else scrollTo(0,0)}
+window.addEventListener("popstate",()=>{if(detail.classList.contains("hidden")){if(workout.classList.contains("hidden"))return;goHome()}else{frame.src="";detail.classList.add("hidden");workout.classList.remove("hidden")}});
+
+function startTimer(){clearInterval(interval);let s=90;timer.classList.remove("hidden");let tick=()=>timer.textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");tick();interval=setInterval(()=>{s--;tick();if(s<=0)clearInterval(interval)},1000)}
+function deletePlan(i){if(plans[i].id==="plan-inicial"){alert("El plan inicial no se puede eliminar.");return}if(confirm("¿Eliminar este plan?")){plans.splice(i,1);save();renderPlans()}}
+function openImport(){modal.classList.remove("hidden");importStep1.classList.remove("hidden");importStep2.classList.add("hidden");status.textContent="";fileName.textContent="";paste.value="";prog.style.width="0%"}
+function closeModal(){modal.classList.add("hidden")}
+function backToImport(){importStep2.classList.add("hidden");importStep1.classList.remove("hidden")}
+async function parsePasted(){let t=paste.value.trim();if(!t){alert("Pega primero el texto del plan.");return}prepareImport(t,"Texto pegado")}
+file.addEventListener("change",()=>{if(file.files[0])handleFile(file.files[0])});
+drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("drag")});drop.addEventListener("dragleave",()=>drop.classList.remove("drag"));drop.addEventListener("drop",e=>{e.preventDefault();drop.classList.remove("drag");let f=e.dataTransfer.files[0];if(f)handleFile(f)});
+async function handleFile(f){fileName.textContent=f.name;status.textContent="Leyendo documento…";prog.style.width="20%";try{let text="";if(f.name.toLowerCase().endsWith(".pdf"))text=await readPdf(f);else if(f.name.toLowerCase().endsWith(".docx"))text=await readDocx(f);else text=await f.text();prog.style.width="75%";prepareImport(text,f.name)}catch(e){console.error(e);status.textContent="No he podido leer el archivo. Prueba a pegar el texto del plan en el cuadro inferior.";prog.style.width="0%"}}
+async function readPdf(f){if(!window.pdfjsLib){await new Promise((res,rej)=>{let sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.js";sc.onload=res;sc.onerror=rej;document.head.appendChild(sc)})}window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.js";let pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise,text="";for(let i=1;i<=pdf.numPages;i++){let page=await pdf.getPage(i),c=await page.getTextContent();text+=c.items.map(x=>x.str).join(" ")+"\\n"}return text}
+async function readDocx(f){return new Promise((res,rej)=>{let sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js";sc.onload=async()=>{try{let r=await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()});res(r.value)}catch(e){rej(e)}};sc.onerror=rej;document.head.appendChild(sc)})}
+function prepareImport(text,source){let lines=text.split(/\\n+/).map(x=>x.trim()).filter(Boolean);let found=[];for(let line of lines){let clean=line.replace(/\\s+/g," ");let m=clean.match(/^(.{3,80}?)(?:\\s+[-–—:]?\\s*)(\\d+\\s*(?:x|×)\\s*\\d+(?:\\s*[-–]\\s*\\d+)?(?:\\s*(?:s|seg|segundos|por lado))?|\\d+\\s*(?:reps?|repeticiones?|s|segundos?)(?:\\s+por\\s+lado)?)/i);if(m){let name=m[1].replace(/^\\d+[.)-]\\s*/,"").trim();if(name.length>2&&!found.some(x=>norm(x[0])===norm(name)))found.push([name,m[2],""])}else{let v=matchVideo(clean);if(v&&!found.some(x=>norm(x[0])===norm(v.name)))found.push([v.name,"",""])}}if(!found.length){for(let v of VIDEO_LIB){if(norm(text).includes(norm(v.name))){found.push([v.name,"",""])}}}importData={source,exercises:found};newPlanName.value=source.replace(/\\.(pdf|docx|txt)$/i,"")||"Nuevo plan";renderImport();importStep1.classList.add("hidden");importStep2.classList.remove("hidden");status.textContent="Plan interpretado";prog.style.width="100%"}
+function renderImport(){importExercises.innerHTML=importData.exercises.length?importData.exercises.map((e,i)=>{let m=matchVideo(e[0]);return `<div class="importExercise"><input class="wide" data-i="${i}" data-k="name" value="${escapeHtml(e[0])}"><input data-i="${i}" data-k="sets" value="${escapeHtml(e[1])}" placeholder="Series/reps"><input data-i="${i}" data-k="extra" value="${escapeHtml(e[2])}" placeholder="Notas"><span class="${m?"match":"noMatch"}">${m?"✓ Vídeo asociado":"• Sin vídeo"}</span><button class="secondary" onclick="this.parentElement.remove()">×</button></div>`}).join(""):`<p>No he encontrado ejercicios automáticamente. Puedes volver atrás y pegar un texto más estructurado.</p>`}
+function saveImportedPlan(){let rows=[...importExercises.querySelectorAll(".importExercise")].map(r=>{let q=k=>r.querySelector(`[data-k="${k}"]`)?.value.trim()||"";return[q("name"),q("sets"),q("extra")] }).filter(x=>x[0]);if(!rows.length){alert("No hay ejercicios para guardar.");return}let p={id:"plan-"+Date.now(),name:newPlanName.value.trim()||"Nuevo plan",desc:"Importado desde "+importData.source,days:[{name:"Entrenamiento",type:"A",exercises:rows}]};plans.push(p);save();closeModal();renderPlans();openPlan(plans.length-1)}
+renderPlans();
+</script>
+</body></html>

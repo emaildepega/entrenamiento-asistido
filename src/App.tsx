@@ -20,7 +20,7 @@ const PlanDetalle = lazy(() => import('@/pages/PlanDetalle'))
 const Entrar = lazy(() => import('@/pages/Entrar'))
 
 export default function App() {
-  const { cargando, sesion, modoLocal } = useAuth()
+  const { cargando, sesion, modoLocal, seAtasco } = useAuth()
   const yaSincronizado = useRef<string | null>(null)
 
   // Al entrar (y al volver la conexión) se pone al día con la nube
@@ -50,7 +50,7 @@ export default function App() {
     return (
       <>
         <Suspense fallback={<Cargando />}>
-          <Entrar />
+          <Entrar seAtasco={seAtasco} />
         </Suspense>
         <Toaster position="top-center" theme="dark" />
       </>

@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import { Dumbbell } from 'lucide-react'
+import { AlertTriangle, Dumbbell, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Boton, Campo, Tarjeta } from '@/components/ui'
 import { supabase } from '@/lib/supabase'
+import { olvidarSesion } from '@/hooks/useAuth'
 
 /**
  * Entrada a la app cuando hay cuenta configurada. Es de un solo usuario, así
  * que no hay recuperación de contraseña ni florituras: entrar o registrarse.
  */
-export default function Entrar() {
+export default function Entrar({ seAtasco = false }: { seAtasco?: boolean }) {
   const [modo, setModo] = useState<'entrar' | 'registro'>('entrar')
   const [email, setEmail] = useState('')
   const [clave, setClave] = useState('')
@@ -68,6 +69,27 @@ export default function Entrar() {
             ordenador.
           </p>
         </div>
+
+        {seAtasco && (
+          <Tarjeta className="mb-4 flex gap-3 border-amber-500/40 bg-amber-500/10">
+            <AlertTriangle size={20} className="mt-0.5 shrink-0 text-amber-400" />
+            <div className="text-sm">
+              <p className="font-bold">No se pudo recuperar tu sesión</p>
+              <p className="mt-1 text-[var(--color-suave)]">
+                Suele pasar si la app se cerró de golpe. Entra otra vez: no se
+                pierde nada, tus datos están en la cuenta.
+              </p>
+              <Boton
+                variante="fantasma"
+                className="mt-1 min-h-10 px-0"
+                onClick={() => void olvidarSesion()}
+              >
+                <RefreshCw size={16} />
+                Empezar de cero
+              </Boton>
+            </div>
+          </Tarjeta>
+        )}
 
         <Tarjeta>
           <form onSubmit={enviar} className="space-y-3">

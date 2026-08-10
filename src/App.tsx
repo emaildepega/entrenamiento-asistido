@@ -8,6 +8,7 @@ import { Cargando } from '@/components/ui'
 import { useAuth } from '@/hooks/useAuth'
 import { sincronizar } from '@/lib/sync'
 import { sincronizarAjustes } from '@/hooks/useAjustes'
+import { configuracionRota, errorConfiguracion } from '@/lib/supabase'
 
 const Hoy = lazy(() => import('@/pages/Hoy'))
 const Semana = lazy(() => import('@/pages/Semana'))
@@ -43,6 +44,27 @@ export default function App() {
     window.addEventListener('online', alVolver)
     return () => window.removeEventListener('online', alVolver)
   }, [sesion])
+
+  // Configuración mal puesta: se dice qué pasa en vez de fallar por dentro
+  if (configuracionRota) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center px-4">
+        <div className="w-full max-w-md rounded-2xl border border-amber-500/40 bg-amber-500/10 p-5">
+          <h1 className="text-xl font-bold">La conexión no está bien puesta</h1>
+          <p className="mt-2 text-sm text-[var(--color-suave)]">
+            {errorConfiguracion}
+          </p>
+          <p className="mt-3 text-sm text-[var(--color-suave)]">
+            Se arregla volviendo a poner la variable{' '}
+            <code className="rounded bg-black/20 px-1">
+              VITE_SUPABASE_ANON_KEY
+            </code>{' '}
+            en Vercel con el valor completo, y desplegando de nuevo.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   if (cargando) return <Cargando texto="Comprobando la sesión…" />
 

@@ -5,7 +5,12 @@ import { toast } from 'sonner'
 import { EncabezadoPagina } from '@/components/EncabezadoPagina'
 import { Cargando, Etiqueta, Tarjeta } from '@/components/ui'
 import { usePlanActivo } from '@/hooks/usePlan'
-import { borrarSesion, listarSesiones, seriesDe } from '@/lib/datos'
+import {
+  borrarSesion,
+  listarSesiones,
+  resumirSerie,
+  seriesDe,
+} from '@/lib/datos'
 import { iconoDeDia } from '@/lib/iconos'
 import { fechaCorta } from '@/lib/utils'
 import { NOMBRES_DIA, type Serie, type Sesion } from '@/lib/tipos'
@@ -129,8 +134,7 @@ export default function Historial() {
                                     key={x.id}
                                     className="rounded-lg bg-[var(--color-fondo)] px-2 py-1 text-xs font-semibold tabular-nums"
                                   >
-                                    {x.reps ?? '—'}
-                                    {x.peso_kg ? ` × ${x.peso_kg} kg` : ''}
+                                    {resumirSerie(x)}
                                   </span>
                                 ))}
                               </div>

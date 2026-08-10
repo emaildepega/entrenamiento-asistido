@@ -1,5 +1,11 @@
 import { differenceInCalendarDays, parseISO, addDays, format } from 'date-fns'
-import { DIAS_KEYS, type Dia, type DiaKey, type Plan } from './tipos'
+import {
+  DIAS_KEYS,
+  type Dia,
+  type DiaKey,
+  type Medicion,
+  type Plan,
+} from './tipos'
 
 /** Convierte un Date a la clave de día que usa el plan. */
 export function diaKeyDe(fecha: Date): DiaKey {
@@ -103,12 +109,37 @@ export function intervaloDe(dia: Dia, semana: number) {
 export function seriesYRepsDe(texto: string): {
   series: number
   reps: number | null
+  /** segundos por serie, si la prescripción los indica ("3×30 s por lado") */
+  segundos: number | null
 } {
-  if (!texto) return { series: 3, reps: null }
+  if (!texto) return { series: 3, reps: null, segundos: null }
 
+  // "3×30 s", "3x30 seg", "3 × 45 segundos"
+  const porTiempo = texto.match(
+    /(\d+)\s*[×xX]\s*(\d+)\s*(?:s\b|seg\b|segundos?\b)/i,
+  )
+  if (porTiempo) {
+    return {
+      series: Number(porTiempo[1]),
+      reps: null,
+      segundos: Number(porTiempo[2]),
+    }
+  }
+
+  // "3×10", "4x8"
   const porEquis = texto.match(/(\d+)\s*[×xX]\s*(\d+)/)
   if (porEquis) {
-    return { series: Number(porEquis[1]), reps: Number(porEquis[2]) }
+    return {
+      series: Number(porEquis[1]),
+      reps: Number(porEquis[2]),
+      segundos: null,
+    }
+  }
+
+  // Minutos sueltos: "20 min suave" → una sola serie de esa duración
+  const porMinutos = texto.match(/(\d+)\s*min\b/i)
+  if (porMinutos && !/\d+\s*[×xX]/.test(texto)) {
+    return { series: 1, reps: null, segundos: Number(porMinutos[1]) * 60 }
   }
 
   const porPalabra = texto.match(/(\d+)(?:\s*[–-]\s*\d+)?\s*series/i)
@@ -117,10 +148,27 @@ export function seriesYRepsDe(texto: string): {
     return {
       series: Number(porPalabra[1]),
       reps: reps ? Number(reps[1]) : null,
+      segundos: null,
     }
   }
 
-  return { series: 3, reps: reps ? Number(reps[1]) : null }
+  return {
+    series: 3,
+    reps: reps ? Number(reps[1]) : null,
+    segundos: null,
+  }
+}
+
+/**
+ * Cómo medir un ejercicio: lo que diga el plan y, si no lo dice, lo que se
+ * deduzca de su prescripción (si habla de segundos, es de aguantar).
+ */
+export function medicionDe(
+  ejercicio: { medicion?: Medicion },
+  prescripcion: string,
+): Medicion {
+  if (ejercicio.medicion) return ejercicio.medicion
+  return seriesYRepsDe(prescripcion).segundos !== null ? 'tiempo' : 'reps_peso'
 }
 
 /** Slug estable a partir del nombre, para enlazar el histórico entre planes. */

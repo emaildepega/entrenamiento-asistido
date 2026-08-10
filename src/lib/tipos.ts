@@ -22,6 +22,31 @@ export const NOMBRES_DIA: Record<DiaKey, string> = {
   domingo: 'Domingo',
 }
 
+/**
+ * Cómo se mide un ejercicio. No todos van de repetir un movimiento con peso:
+ * una plancha se aguanta un tiempo, y un superman se cuenta por repeticiones
+ * pero sin peso ninguno.
+ */
+export type Medicion = 'reps_peso' | 'reps' | 'tiempo'
+
+export const MEDICIONES: { valor: Medicion; etiqueta: string; ayuda: string }[] = [
+  {
+    valor: 'reps_peso',
+    etiqueta: 'Repeticiones y peso',
+    ayuda: 'Press de banca, remo, curl…',
+  },
+  {
+    valor: 'reps',
+    etiqueta: 'Solo repeticiones',
+    ayuda: 'Peso corporal: crunch, superman…',
+  },
+  {
+    valor: 'tiempo',
+    etiqueta: 'Tiempo aguantado',
+    ayuda: 'Planchas y otros isométricos',
+  },
+]
+
 export interface Ejercicio {
   slug: string
   nombre: string
@@ -30,6 +55,8 @@ export interface Ejercicio {
   youtube_id: string | null
   /** series/reps por semana del bloque ("1".."4"); si falta, usa la del día */
   prescripcion?: Record<string, string>
+  /** cómo se registra; por defecto repeticiones y peso */
+  medicion?: Medicion
   /** cuántas filas de series pintar; por defecto 3 */
   series_objetivo?: number
 }
@@ -99,6 +126,8 @@ export interface Serie {
   serie: number
   reps: number | null
   peso_kg: number | null
+  /** segundos aguantados, en los ejercicios que se miden por tiempo */
+  segundos: number | null
   hecha: boolean
 }
 

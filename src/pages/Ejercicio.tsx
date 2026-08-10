@@ -6,7 +6,13 @@ import { AnimacionEjercicio } from '@/components/AnimacionEjercicio'
 import { SelectorAnimacion } from '@/components/SelectorAnimacion'
 import { Boton, Cargando, Tarjeta } from '@/components/ui'
 import { usePlanActivo } from '@/hooks/usePlan'
-import { guardarMedia, historico, mediaDe, type RegistroPasado } from '@/lib/datos'
+import {
+  guardarMedia,
+  historico,
+  mediaDe,
+  resumirSerie,
+  type RegistroPasado,
+} from '@/lib/datos'
 import { fechaCorta } from '@/lib/utils'
 import type { Ejercicio as TipoEjercicio } from '@/lib/tipos'
 
@@ -113,8 +119,7 @@ export default function Ejercicio() {
                     key={s.id}
                     className="rounded-lg bg-[var(--color-fondo)] px-2.5 py-1.5 text-sm font-semibold tabular-nums"
                   >
-                    {s.reps ?? '—'}
-                    {s.peso_kg ? ` × ${s.peso_kg} kg` : ''}
+                    {resumirSerie(s)}
                   </span>
                 ))}
               </div>

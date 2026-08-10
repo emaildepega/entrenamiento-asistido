@@ -80,8 +80,14 @@ const ESQUEMA = {
             description:
               'id de 11 caracteres de un vídeo de demostración real que hayas encontrado buscando, o null si no estás seguro',
           },
+          medicion: {
+            type: 'string',
+            enum: ['reps_peso', 'reps', 'tiempo'],
+            description:
+              'tiempo si se aguanta una postura; reps si es peso corporal por repeticiones; reps_peso si se levanta peso',
+          },
         },
-        required: ['nombre', 'catalogo_id', 'youtube_id'],
+        required: ['nombre', 'catalogo_id', 'youtube_id', 'medicion'],
         additionalProperties: false,
       },
     },
@@ -160,7 +166,10 @@ ${nombres.map((n: string) => `- ${n}`).join('\n')}
 1. Elige del catálogo el id cuyo MOVIMIENTO coincida de verdad, mirando también
    el equipo (una mancuerna no es una barra, una banda no es una polea). Si no
    hay ninguno que corresponda, pon null: es mejor vacío que mal.
-2. Busca en la web un vídeo de YouTube que demuestre la ejecución de ese
+2. Di cómo se registra: "tiempo" si consiste en aguantar una postura o se mide
+   por duración (planchas e isométricos), "reps" si se cuentan repeticiones sin
+   peso añadido, y "reps_peso" si se levanta un peso que merece apuntarse.
+3. Busca en la web un vídeo de YouTube que demuestre la ejecución de ese
    ejercicio concreto y devuelve su id de 11 caracteres. Si no encuentras uno
    del que estés seguro, pon null. No te inventes ids.`,
         },
@@ -181,6 +190,7 @@ ${nombres.map((n: string) => `- ${n}`).join('\n')}
         nombre: string
         catalogo_id: string | null
         youtube_id: string | null
+        medicion: 'reps_peso' | 'reps' | 'tiempo'
       }[]
     }
 
@@ -189,6 +199,7 @@ ${nombres.map((n: string) => `- ${n}`).join('\n')}
     const verificados = await Promise.all(
       resultados.map(async (r) => ({
         nombre: r.nombre,
+        medicion: r.medicion ?? 'reps_peso',
         catalogo_id:
           r.catalogo_id && idsValidos.has(r.catalogo_id) ? r.catalogo_id : null,
         youtube_id:

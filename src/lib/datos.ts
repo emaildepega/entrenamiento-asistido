@@ -244,7 +244,11 @@ export async function historico(
     .where('ejercicio_slug')
     .equals(ejercicioSlug)
     .toArray()
-  const hechas = series.filter((s) => s.hecha && (s.reps ?? 0) > 0)
+  // Cuenta como registrada si tiene repeticiones o tiempo: los ejercicios que
+  // se aguantan no llevan repeticiones y antes se caían del histórico.
+  const hechas = series.filter(
+    (s) => s.hecha && ((s.reps ?? 0) > 0 || (s.segundos ?? 0) > 0),
+  )
   if (hechas.length === 0) return []
 
   const sesiones = await local.sesiones.toArray()
@@ -292,20 +296,46 @@ export async function ultimaVez(
   return todos.find((r) => fechasValidas.has(r.fecha)) ?? null
 }
 
-/** Resume un registro pasado en una línea legible: "3×10 con 12 kg". */
+function comoTiempo(segundos: number): string {
+  const m = Math.floor(segundos / 60)
+  const s = Math.round(segundos % 60)
+  return m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `${s} s`
+}
+
+/**
+ * Resume un registro pasado en una línea legible. Se mira lo que hay guardado:
+ * si son segundos habla de tiempo ("3×45 s"), y si no, de repeticiones y peso.
+ */
 export function resumirRegistro(reg: RegistroPasado): string {
   const series = reg.series
   if (series.length === 0) return ''
+
+  const tiempos = series.map((s) => s.segundos).filter((x): x is number => !!x)
+  if (tiempos.length > 0) {
+    const unicos = [...new Set(tiempos)]
+    if (unicos.length === 1) {
+      return `${tiempos.length}×${comoTiempo(unicos[0])}`
+    }
+    return `${tiempos.length} series de ${comoTiempo(Math.min(...tiempos))} a ${comoTiempo(Math.max(...tiempos))}`
+  }
+
   const reps = [...new Set(series.map((s) => s.reps).filter(Boolean))]
   const pesos = [...new Set(series.map((s) => s.peso_kg).filter(Boolean))]
   const parteReps =
     reps.length === 1 ? `${series.length}×${reps[0]}` : `${series.length} series`
   if (pesos.length === 0) return parteReps
-  const parsePeso =
+  const partePeso =
     pesos.length === 1
       ? `${pesos[0]} kg`
       : `${Math.min(...(pesos as number[]))}–${Math.max(...(pesos as number[]))} kg`
-  return `${parteReps} con ${parsePeso}`
+  return `${parteReps} con ${partePeso}`
+}
+
+/** Una serie suelta, para el histórico: "10 × 12 kg" o "45 s". */
+export function resumirSerie(s: Serie): string {
+  if (s.segundos) return comoTiempo(s.segundos)
+  if (s.reps === null) return '—'
+  return s.peso_kg ? `${s.reps} × ${s.peso_kg} kg` : `${s.reps}`
 }
 
 /* ------------------------------------------------------------- media ------ */

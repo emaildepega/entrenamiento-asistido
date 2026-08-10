@@ -1,12 +1,13 @@
 import { supabase } from './supabase'
 import { local } from './db'
 import { slugificar } from './plan'
-import type { Ejercicio } from './tipos'
+import type { Ejercicio, Medicion } from './tipos'
 
 export interface Encontrado {
   nombre: string
   catalogo_id: string | null
   youtube_id: string | null
+  medicion?: Medicion
 }
 
 /**
@@ -65,11 +66,13 @@ export function ejercicioNuevo(
   nombre: string,
   catalogoId: string | null = null,
   youtubeId: string | null = null,
+  medicion?: Medicion,
 ): Ejercicio {
   return {
     slug: slugificar(nombre),
     nombre: nombre.trim(),
     catalogo_id: catalogoId,
     youtube_id: youtubeId,
+    ...(medicion ? { medicion } : {}),
   }
 }

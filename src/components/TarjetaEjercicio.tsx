@@ -8,6 +8,7 @@ import {
   Undo2,
 } from 'lucide-react'
 import { AnimacionEjercicio } from './AnimacionEjercicio'
+import { CampoTiempo } from './CampoTiempo'
 import { SelectorAnimacion } from './SelectorAnimacion'
 import { Campo, Etiqueta, Tarjeta } from './ui'
 import {
@@ -18,7 +19,7 @@ import {
   ultimaVez,
   type RegistroPasado,
 } from '@/lib/datos'
-import { seriesYRepsDe } from '@/lib/plan'
+import { medicionDe, seriesYRepsDe } from '@/lib/plan'
 import { cn, fechaCorta } from '@/lib/utils'
 import type { Ejercicio, Serie } from '@/lib/tipos'
 
@@ -45,6 +46,10 @@ export function TarjetaEjercicio({
   const [selectorAbierto, setSelectorAbierto] = useState(false)
 
   const plantilla = useMemo(() => seriesYRepsDe(prescripcion), [prescripcion])
+  const medicion = useMemo(
+    () => medicionDe(ejercicio, prescripcion),
+    [ejercicio, prescripcion],
+  )
 
   useEffect(() => {
     let vivo = true
@@ -69,6 +74,7 @@ export function TarjetaEjercicio({
             serie: i,
             reps: null,
             peso_kg: null,
+            segundos: null,
             hecha: false,
           },
         )
@@ -93,12 +99,22 @@ export function TarjetaEjercicio({
 
   const marcar = async (serie: Serie) => {
     const hecha = !serie.hecha
-    // Si no puso repeticiones, se asume la del plan: en el gimnasio no apetece teclear
-    const reps = serie.reps ?? (hecha ? plantilla.reps : null)
-    const pesoPrevio =
-      serie.peso_kg ??
-      (hecha ? (anterior?.series[serie.serie - 1]?.peso_kg ?? null) : null)
-    await actualizar(serie, { hecha, reps, peso_kg: pesoPrevio })
+    const previa = anterior?.series[serie.serie - 1]
+    // Lo que no se haya escrito se rellena con lo del plan o con lo de la
+    // última vez: en mitad de una sesión no apetece teclear.
+    const cambios: Partial<Serie> = { hecha }
+    if (medicion === 'tiempo') {
+      cambios.segundos =
+        serie.segundos ??
+        (hecha ? (plantilla.segundos ?? previa?.segundos ?? null) : null)
+    } else {
+      cambios.reps = serie.reps ?? (hecha ? plantilla.reps : null)
+      if (medicion === 'reps_peso') {
+        cambios.peso_kg =
+          serie.peso_kg ?? (hecha ? (previa?.peso_kg ?? null) : null)
+      }
+    }
+    await actualizar(serie, cambios)
     if (hecha) onSerieMarcada()
   }
 
@@ -172,35 +188,57 @@ export function TarjetaEjercicio({
               <span className="w-6 shrink-0 text-center text-sm font-bold text-[var(--color-suave)] tabular-nums">
                 {s.serie}
               </span>
-              <Campo
-                type="number"
-                inputMode="numeric"
-                placeholder={plantilla.reps ? String(plantilla.reps) : 'reps'}
-                value={s.reps ?? ''}
-                onChange={(e) =>
-                  void actualizar(s, {
-                    reps: e.target.value === '' ? null : Number(e.target.value),
-                  })
-                }
-                aria-label={`Repeticiones de la serie ${s.serie}`}
-                className="min-h-11 flex-1 text-center"
-              />
-              <span className="text-xs text-[var(--color-suave)]">×</span>
-              <Campo
-                type="number"
-                inputMode="decimal"
-                step="0.5"
-                placeholder="kg"
-                value={s.peso_kg ?? ''}
-                onChange={(e) =>
-                  void actualizar(s, {
-                    peso_kg:
-                      e.target.value === '' ? null : Number(e.target.value),
-                  })
-                }
-                aria-label={`Peso de la serie ${s.serie}`}
-                className="min-h-11 flex-1 text-center"
-              />
+              {medicion === 'tiempo' ? (
+                <CampoTiempo
+                  valor={s.segundos}
+                  objetivo={plantilla.segundos}
+                  onCambiar={(segundos) => void actualizar(s, { segundos })}
+                  etiqueta={`Tiempo aguantado en la serie ${s.serie}`}
+                />
+              ) : (
+                <>
+                  <Campo
+                    type="number"
+                    inputMode="numeric"
+                    placeholder={
+                      plantilla.reps ? String(plantilla.reps) : 'reps'
+                    }
+                    value={s.reps ?? ''}
+                    onChange={(e) =>
+                      void actualizar(s, {
+                        reps:
+                          e.target.value === '' ? null : Number(e.target.value),
+                      })
+                    }
+                    aria-label={`Repeticiones de la serie ${s.serie}`}
+                    className="min-h-11 flex-1 text-center"
+                  />
+                  {medicion === 'reps_peso' && (
+                    <>
+                      <span className="text-xs text-[var(--color-suave)]">
+                        ×
+                      </span>
+                      <Campo
+                        type="number"
+                        inputMode="decimal"
+                        step="0.5"
+                        placeholder="kg"
+                        value={s.peso_kg ?? ''}
+                        onChange={(e) =>
+                          void actualizar(s, {
+                            peso_kg:
+                              e.target.value === ''
+                                ? null
+                                : Number(e.target.value),
+                          })
+                        }
+                        aria-label={`Peso de la serie ${s.serie}`}
+                        className="min-h-11 flex-1 text-center"
+                      />
+                    </>
+                  )}
+                </>
+              )}
               <button
                 onClick={() => void marcar(s)}
                 aria-label={

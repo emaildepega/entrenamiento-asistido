@@ -34,8 +34,10 @@ import { iconoDeDia } from '@/lib/iconos'
 import { cn, fechaCorta } from '@/lib/utils'
 import {
   DIAS_KEYS,
+  MEDICIONES,
   NOMBRES_DIA,
   type Dia,
+  type Medicion,
   type Plan,
   type TipoDia,
 } from '@/lib/tipos'
@@ -426,6 +428,8 @@ export default function PlanDetalle() {
                             </span>
                             <span className="mt-0.5 flex flex-wrap gap-1.5 text-[11px] font-bold text-[var(--color-suave)]">
                               {!ej.catalogo_id && <span>sin animación</span>}
+                              {ej.medicion === 'tiempo' && <span>por tiempo</span>}
+                              {ej.medicion === 'reps' && <span>sin peso</span>}
                               {ej.youtube_id ? (
                                 <a
                                   href={`https://www.youtube.com/watch?v=${ej.youtube_id}`}
@@ -443,6 +447,26 @@ export default function PlanDetalle() {
                           </span>
                           {editando && (
                             <>
+                              <select
+                                value={ej.medicion ?? 'reps_peso'}
+                                onChange={(e) => {
+                                  const ejercicios = [...dia.ejercicios]
+                                  ejercicios[ei] = {
+                                    ...ej,
+                                    medicion: e.target.value as Medicion,
+                                  }
+                                  cambiarDia(di, { ejercicios })
+                                }}
+                                aria-label={`Cómo se mide ${ej.nombre}`}
+                                title="Cómo se registra este ejercicio"
+                                className="min-h-11 shrink-0 rounded-lg border border-[var(--color-borde)] bg-[var(--color-fondo)] px-2 text-xs text-[var(--color-texto)]"
+                              >
+                                {MEDICIONES.map((m) => (
+                                  <option key={m.valor} value={m.valor}>
+                                    {m.etiqueta}
+                                  </option>
+                                ))}
+                              </select>
                               <span className="flex shrink-0 flex-col">
                                 <button
                                   onClick={() => moverEjercicio(di, ei, -1)}

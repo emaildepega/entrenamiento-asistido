@@ -85,14 +85,28 @@ export default function Progreso() {
   }, [plan, sesiones])
 
   /* ------------------------------------------------------ fuerza elegida -- */
+  /** Los que se aguantan se miden en segundos, no en kilos. */
+  const esPorTiempo = useMemo(
+    () => registros.some((r) => r.series.some((s) => (s.segundos ?? 0) > 0)),
+    [registros],
+  )
+
   const datosFuerza = useMemo(
     () =>
       [...registros]
         .reverse()
         .map((r) => {
-          const pesos = r.series
-            .map((s) => s.peso_kg ?? 0)
-            .filter((p) => p > 0)
+          if (esPorTiempo) {
+            const tiempos = r.series
+              .map((s) => s.segundos ?? 0)
+              .filter((x) => x > 0)
+            return {
+              fecha: fechaCorta(r.fecha),
+              maximo: tiempos.length ? Math.max(...tiempos) : 0,
+              volumen: tiempos.reduce((t, x) => t + x, 0),
+            }
+          }
+          const pesos = r.series.map((s) => s.peso_kg ?? 0).filter((p) => p > 0)
           const volumen = r.series.reduce(
             (t, s) => t + (s.reps ?? 0) * (s.peso_kg ?? 0),
             0,
@@ -104,7 +118,7 @@ export default function Progreso() {
           }
         })
         .filter((d) => d.maximo > 0 || d.volumen > 0),
-    [registros],
+    [registros, esPorTiempo],
   )
 
   /* -------------------------------------------------------- horas de bici -- */
@@ -231,8 +245,14 @@ export default function Progreso() {
                         labelStyle={{ color: '#f1f5f9' }}
                         formatter={(v, n) =>
                           n === 'maximo'
-                            ? [`${v} kg`, 'Peso máximo']
-                            : [`${v}`, 'Volumen']
+                            ? [
+                                esPorTiempo ? `${v} s` : `${v} kg`,
+                                esPorTiempo ? 'Mejor marca' : 'Peso máximo',
+                              ]
+                            : [
+                                esPorTiempo ? `${v} s` : `${v}`,
+                                esPorTiempo ? 'Tiempo total' : 'Volumen',
+                              ]
                         }
                       />
                       <Line
@@ -254,8 +274,10 @@ export default function Progreso() {
                 )}
 
                 <p className="mt-2 text-center text-xs text-[var(--color-suave)]">
-                  <span className="text-[var(--color-acento)]">■</span> peso máximo ·{' '}
-                  <span className="text-sky-400">■</span> volumen total
+                  <span className="text-[var(--color-acento)]">■</span>{' '}
+                  {esPorTiempo ? 'mejor marca' : 'peso máximo'} ·{' '}
+                  <span className="text-sky-400">■</span>{' '}
+                  {esPorTiempo ? 'tiempo total' : 'volumen total'}
                 </p>
               </Tarjeta>
             </section>

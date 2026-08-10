@@ -77,6 +77,12 @@ const EJERCICIO = {
         'id del catálogo cuyo movimiento coincide de verdad, o null si ninguno corresponde',
     },
     youtube_id: { type: 'null' },
+    medicion: {
+      type: 'string',
+      enum: ['reps_peso', 'reps', 'tiempo'],
+      description:
+        'reps_peso si se levanta peso; reps si es peso corporal contando repeticiones; tiempo si se aguanta una postura o se mide por duración',
+    },
     prescripcion: {
       type: ['array', 'null'],
       description:
@@ -84,7 +90,7 @@ const EJERCICIO = {
       items: PRESCRIPCION.items,
     },
   },
-  required: ['nombre', 'catalogo_id', 'youtube_id', 'prescripcion'],
+  required: ['nombre', 'catalogo_id', 'youtube_id', 'medicion', 'prescripcion'],
   additionalProperties: false,
 }
 
@@ -179,6 +185,15 @@ Reglas:
    con mancuernas no es el mismo ejercicio que uno con barra. Si dudas o no hay
    nada que corresponda, pon null: es mejor dejarlo vacío que emparejarlo mal.
 7. youtube_id siempre null.
+7b. medicion: cómo se registra ese ejercicio.
+   - "tiempo" si consiste en aguantar una postura o se mide por duración
+     (planchas, isométricos, remo por minutos). El peso ahí no significa nada.
+   - "reps" si se cuentan repeticiones pero sin peso añadido (crunch, superman,
+     elevaciones de piernas, ejercicios con banda sin carga medible).
+   - "reps_peso" en el resto: cuando se levanta un peso que tiene sentido
+     apuntar.
+   Si eliges "tiempo", escribe la prescripción en segundos ("3×30 s") para que
+   se pueda cronometrar.
 8. Escribe los nombres de ejercicios y las prescripciones en castellano,
    respetando la terminología del plan.
 

@@ -1,5 +1,5 @@
 import { addDays, format, nextMonday, isMonday } from 'date-fns'
-import type { Estructura, Plan } from './tipos'
+import type { Estructura, Medicion, Plan } from './tipos'
 import { slugificar } from './plan'
 
 type EjercicioSemilla = [
@@ -7,16 +7,18 @@ type EjercicioSemilla = [
   catalogoId: string | null,
   youtubeId: string | null,
   prescripcion?: Record<string, string>,
+  medicion?: Medicion,
 ]
 
 function ej(...args: EjercicioSemilla) {
-  const [nombre, catalogo_id, youtube_id, prescripcion] = args
+  const [nombre, catalogo_id, youtube_id, prescripcion, medicion] = args
   return {
     slug: slugificar(nombre),
     nombre,
     catalogo_id,
     youtube_id,
     ...(prescripcion ? { prescripcion } : {}),
+    ...(medicion ? { medicion } : {}),
   }
 }
 
@@ -51,13 +53,25 @@ export const ESTRUCTURA_SEMILLA: Estructura = {
         ej('Press inclinado (respaldo 30–45°)', 'Incline_Dumbbell_Press', 'oZVCBM9f8Eo'),
         ej('Press militar sentado', 'Seated_Dumbbell_Press', 'poD_-zaG9hk'),
         ej('Extensión de tríceps tumbado', 'Lying_Triceps_Press', 'R6SdxvZGK5s'),
-        ej('Crunch en declinado (pies anclados)', 'Decline_Crunch', 'FRzQXeN1hro'),
-        ej('Plancha frontal', 'Plank', 'gfj5MWBNxxU', {
-          '1': '3 series manteniendo la posición',
-          '2': '3 series manteniendo la posición',
-          '3': '3 series manteniendo la posición',
-          '4': '2 series suaves',
-        }),
+        ej(
+          'Crunch en declinado (pies anclados)',
+          'Decline_Crunch',
+          'FRzQXeN1hro',
+          undefined,
+          'reps',
+        ),
+        ej(
+          'Plancha frontal',
+          'Plank',
+          'gfj5MWBNxxU',
+          {
+            '1': '3×30 s',
+            '2': '3×40 s',
+            '3': '3×45 s',
+            '4': '2×30 s',
+          },
+          'tiempo',
+        ),
       ],
     },
     {
@@ -102,31 +116,31 @@ export const ESTRUCTURA_SEMILLA: Estructura = {
           '2': '4×6 min moderado',
           '3': '25 min MUY suave',
           '4': '15 min + estiramientos',
-        }),
+        }, 'tiempo'),
         ej('Elevación de piernas en declinado', 'Flat_Bench_Lying_Leg_Raise', 'b_6BdouMVc0', {
           '1': '3×12',
           '2': '3×12',
           '3': '2×12 ligero',
           '4': 'Solo estiramientos',
-        }),
+        }, 'reps'),
         ej('Russian twist con mancuerna', 'Russian_Twist', 'qYym5L-B9hs', {
           '1': '3×20',
           '2': '3×20',
           '3': '2×20 ligero',
           '4': 'Solo estiramientos',
-        }),
+        }, 'reps_peso'),
         ej('Plancha lateral', 'Side_Bridge', 'N_s9em1xTqU', {
           '1': '3×30 s por lado',
           '2': '3×30 s por lado',
           '3': '2×30 s por lado',
           '4': 'Solo estiramientos',
-        }),
+        }, 'tiempo'),
         ej('Superman en el suelo', 'Superman', 'UXUGfiNL1lI', {
           '1': '3×12',
           '2': '3×12',
           '3': '2×12 ligero',
           '4': 'Solo estiramientos',
-        }),
+        }, 'reps'),
       ],
     },
     {
@@ -169,9 +183,9 @@ export const ESTRUCTURA_SEMILLA: Estructura = {
       ejercicios: [
         ej('Remo a una mano apoyado en el banco', 'One-Arm_Dumbbell_Row', 'PgpQ4-jHiq4'),
         ej('Pullover con mancuerna', 'Straight-Arm_Dumbbell_Pullover', 'tcHaHIQStsk'),
-        ej('Face pull con banda elástica', 'Face_Pull', 'PYj77in44ms'),
+        ej('Face pull con banda elástica', 'Face_Pull', 'PYj77in44ms', undefined, 'reps'),
         ej('Curl de bíceps sentado', 'Seated_Dumbbell_Curl', 'O0ffoQlgCwA'),
-        ej('Pallof press con banda (antirrotación)', 'Pallof_Press', 'P16SQlmWj1o'),
+        ej('Pallof press con banda (antirrotación)', 'Pallof_Press', 'P16SQlmWj1o', undefined, 'reps'),
       ],
     },
     {

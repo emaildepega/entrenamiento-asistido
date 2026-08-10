@@ -78,6 +78,7 @@ export function SelectorEjercicio({
         nombre,
         hallado?.catalogo_id ?? null,
         hallado?.youtube_id ?? null,
+        hallado?.medicion,
       )
       onElegir(ej)
       const encontrado = [

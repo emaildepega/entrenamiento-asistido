@@ -1,13 +1,16 @@
 import { Suspense, lazy, useEffect, useRef } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Toaster, toast } from 'sonner'
+import { BarraTemporizador } from '@/components/BarraTemporizador'
 import { NavInferior } from '@/components/NavInferior'
 import { NavLateral } from '@/components/NavLateral'
 import { AvisoSinConexion } from '@/components/AvisoSinConexion'
 import { Cargando } from '@/components/ui'
 import { useAuth } from '@/hooks/useAuth'
+import { ProveedorTemporizador } from '@/hooks/useTemporizador'
 import { sincronizar } from '@/lib/sync'
 import { sincronizarAjustes } from '@/hooks/useAjustes'
+import { desbloquearAudio } from '@/lib/alarma'
 import { configuracionRota, errorConfiguracion } from '@/lib/supabase'
 
 const Hoy = lazy(() => import('@/pages/Hoy'))
@@ -45,6 +48,18 @@ export default function App() {
     return () => window.removeEventListener('online', alVolver)
   }, [sesion])
 
+  // El navegador del móvil solo deja sonar avisos si el audio se preparó a raíz
+  // de un toque del usuario. Se hace con el primero, sea donde sea.
+  useEffect(() => {
+    const alTocar = () => desbloquearAudio()
+    window.addEventListener('pointerdown', alTocar, { once: true })
+    window.addEventListener('keydown', alTocar, { once: true })
+    return () => {
+      window.removeEventListener('pointerdown', alTocar)
+      window.removeEventListener('keydown', alTocar)
+    }
+  }, [])
+
   // Configuración mal puesta: se dice qué pasa en vez de fallar por dentro
   if (configuracionRota) {
     return (
@@ -81,37 +96,43 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <AvisoSinConexion />
-      <NavLateral />
+      <ProveedorTemporizador>
+        <AvisoSinConexion />
+        <NavLateral />
 
-      {/* Móvil: una columna con navegación abajo. Escritorio: barra lateral. */}
-      <main className="min-h-dvh px-4 pt-6 pb-28 md:pb-12 md:pl-60">
-        <div className="mx-auto max-w-2xl md:max-w-5xl md:px-6 md:pt-4 xl:max-w-6xl">
-          <Suspense fallback={<Cargando />}>
-            <Routes>
-              <Route path="/" element={<Hoy />} />
-              <Route path="/sesion/:fecha" element={<Hoy />} />
-              <Route path="/semana" element={<Semana />} />
-              <Route path="/progreso" element={<Progreso />} />
-              <Route path="/historial" element={<Historial />} />
-              <Route path="/planes" element={<Planes />} />
-              <Route path="/plan/:id" element={<PlanDetalle />} />
-              <Route path="/ajustes" element={<Ajustes />} />
-              <Route path="/ejercicio/:slug" element={<Ejercicio />} />
-            </Routes>
-          </Suspense>
+        {/* Móvil: una columna con navegación abajo. Escritorio: barra lateral.
+            El hueco de abajo crece con la barra del temporizador para que
+            nunca tape el botón de terminar la sesión. */}
+        <main className="min-h-dvh px-4 pt-6 pb-[calc(7rem+var(--alto-temporizador))] md:pb-[calc(3rem+var(--alto-temporizador))] md:pl-60">
+          <div className="mx-auto max-w-2xl md:max-w-5xl md:px-6 md:pt-4 xl:max-w-6xl">
+            <Suspense fallback={<Cargando />}>
+              <Routes>
+                <Route path="/" element={<Hoy />} />
+                <Route path="/sesion/:fecha" element={<Hoy />} />
+                <Route path="/semana" element={<Semana />} />
+                <Route path="/progreso" element={<Progreso />} />
+                <Route path="/historial" element={<Historial />} />
+                <Route path="/planes" element={<Planes />} />
+                <Route path="/plan/:id" element={<PlanDetalle />} />
+                <Route path="/ajustes" element={<Ajustes />} />
+                <Route path="/ejercicio/:slug" element={<Ejercicio />} />
+              </Routes>
+            </Suspense>
+          </div>
+        </main>
+
+        <BarraTemporizador />
+
+        <div className="md:hidden">
+          <NavInferior />
         </div>
-      </main>
 
-      <div className="md:hidden">
-        <NavInferior />
-      </div>
-
-      <Toaster
-        position="top-center"
-        theme="dark"
-        toastOptions={{ style: { fontWeight: 600 } }}
-      />
+        <Toaster
+          position="top-center"
+          theme="dark"
+          toastOptions={{ style: { fontWeight: 600 } }}
+        />
+      </ProveedorTemporizador>
     </BrowserRouter>
   )
 }

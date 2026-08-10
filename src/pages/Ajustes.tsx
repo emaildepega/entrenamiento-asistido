@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   AlertTriangle,
+  BellRing,
   Download,
   LogOut,
   Moon,
@@ -8,6 +9,9 @@ import {
   Sun,
   Trash2,
   Upload,
+  Vibrate,
+  Volume2,
+  VolumeX,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { EncabezadoPagina } from '@/components/EncabezadoPagina'
@@ -18,6 +22,7 @@ import { exportarTodo, importarTodo } from '@/lib/datos'
 import { local } from '@/lib/db'
 import { hayNube, supabase } from '@/lib/supabase'
 import { limpiarLocal, pendientesCount, sincronizar } from '@/lib/sync'
+import { desbloquearAudio, sonarAlarma } from '@/lib/alarma'
 import { fechaCorta } from '@/lib/utils'
 
 export default function Ajustes() {
@@ -205,6 +210,47 @@ export default function Ajustes() {
             />
             <span className="text-sm text-[var(--color-suave)]">segundos</span>
           </div>
+        </Tarjeta>
+
+        <Tarjeta>
+          <p className="mb-1 text-xs font-bold text-[var(--color-suave)] uppercase">
+            Aviso al terminar el temporizador
+          </p>
+          <p className="mb-3 text-sm text-[var(--color-suave)]">
+            Suena y vibra cuando se acaba un descanso o una serie por tiempo,
+            aunque estés en otra pantalla de la app.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Boton
+              variante={ajustes.sonido ? 'primario' : 'secundario'}
+              onClick={() => cambiar({ sonido: !ajustes.sonido })}
+              aria-pressed={ajustes.sonido}
+              className="flex-1"
+            >
+              {ajustes.sonido ? <Volume2 size={18} /> : <VolumeX size={18} />}
+              Sonido
+            </Boton>
+            <Boton
+              variante={ajustes.vibracion ? 'primario' : 'secundario'}
+              onClick={() => cambiar({ vibracion: !ajustes.vibracion })}
+              aria-pressed={ajustes.vibracion}
+              className="flex-1"
+            >
+              <Vibrate size={18} />
+              Vibración
+            </Boton>
+          </div>
+          <Boton
+            variante="fantasma"
+            className="mt-1 min-h-10 px-0"
+            onClick={() => {
+              desbloquearAudio()
+              sonarAlarma()
+            }}
+          >
+            <BellRing size={16} />
+            Probar el aviso
+          </Boton>
         </Tarjeta>
 
         <Tarjeta>

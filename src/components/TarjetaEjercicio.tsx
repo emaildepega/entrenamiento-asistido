@@ -20,6 +20,8 @@ import {
   type RegistroPasado,
 } from '@/lib/datos'
 import { medicionDe, seriesYRepsDe } from '@/lib/plan'
+import { EVENTO_PENDIENTES, tomarPendientes } from '@/lib/seriePendiente'
+import { pararAlarma } from '@/lib/alarma'
 import { cn, fechaCorta } from '@/lib/utils'
 import type { Ejercicio, Serie } from '@/lib/tipos'
 
@@ -83,13 +85,66 @@ export function TarjetaEjercicio({
       for (const g of guardadas) {
         if (g.serie > cuantas) filas.push(g)
       }
-      setSeries(filas.sort((a, b) => a.serie - b.serie))
+
+      // Este ejercicio se mide por tiempo, pero hay series apuntadas como
+      // "1 × 30 kg" de cuando la app no lo distinguía: esos kilos eran
+      // segundos, así que se pasan a su sitio.
+      const arregladas =
+        medicion === 'tiempo'
+          ? filas.map((s) =>
+              s.segundos === null && (s.peso_kg ?? 0) > 0
+                ? { ...s, segundos: s.peso_kg, peso_kg: null, reps: null }
+                : s,
+            )
+          : filas
+      for (const s of arregladas) {
+        const original = filas.find((f) => f.id === s.id)
+        if (original && original !== s) await guardarSerie(s)
+      }
+
+      setSeries(arregladas.sort((a, b) => a.serie - b.serie))
     }
     void cargar()
     return () => {
       vivo = false
     }
-  }, [sesionId, ejercicio.slug, ejercicio.nombre, ejercicio.series_objetivo, plantilla.series])
+  }, [
+    sesionId,
+    ejercicio.slug,
+    ejercicio.nombre,
+    ejercicio.series_objetivo,
+    plantilla.series,
+    medicion,
+  ])
+
+  // Series cronometradas que terminaron con la tarjeta fuera de pantalla (o con
+  // la app recargada): en cuanto se ve, se dan por hechas con su tiempo.
+  useEffect(() => {
+    const aplicar = () => {
+      if (series.length === 0) return
+      const pendientes = tomarPendientes(sesionId, ejercicio.slug)
+      if (pendientes.length === 0) return
+      pararAlarma()
+      const siguientes = series.map((s) => {
+        const p = pendientes.find((x) => x.serie === s.serie)
+        if (!p) return s
+        // Un cero significa que la cuenta atrás se quedó sin tiempo por haberla
+        // recortado, no que se aguantara cero: se respeta lo que ya hubiera.
+        return {
+          ...s,
+          segundos: p.segundos > 0 ? p.segundos : s.segundos,
+          hecha: true,
+        }
+      })
+      setSeries(siguientes)
+      for (const s of siguientes) {
+        if (pendientes.some((p) => p.serie === s.serie)) void guardarSerie(s)
+      }
+    }
+    aplicar()
+    window.addEventListener(EVENTO_PENDIENTES, aplicar)
+    return () => window.removeEventListener(EVENTO_PENDIENTES, aplicar)
+  }, [series, sesionId, ejercicio.slug])
 
   const actualizar = async (serie: Serie, cambios: Partial<Serie>) => {
     const nueva = { ...serie, ...cambios }
@@ -99,6 +154,9 @@ export function TarjetaEjercicio({
 
   const marcar = async (serie: Serie) => {
     const hecha = !serie.hecha
+    // Si el aviso estaba sonando, marcar la serie es la forma natural de
+    // callarlo: no hace falta buscar el botón de la barra.
+    pararAlarma()
     const previa = anterior?.series[serie.serie - 1]
     // Lo que no se haya escrito se rellena con lo del plan o con lo de la
     // última vez: en mitad de una sesión no apetece teclear.
@@ -191,9 +249,19 @@ export function TarjetaEjercicio({
               {medicion === 'tiempo' ? (
                 <CampoTiempo
                   valor={s.segundos}
-                  objetivo={plantilla.segundos}
+                  objetivo={
+                    plantilla.segundos ??
+                    anterior?.series[s.serie - 1]?.segundos ??
+                    null
+                  }
                   onCambiar={(segundos) => void actualizar(s, { segundos })}
                   etiqueta={`Tiempo aguantado en la serie ${s.serie}`}
+                  nombreEjercicio={ejercicio.nombre}
+                  tarea={{
+                    sesionId,
+                    slug: ejercicio.slug,
+                    serie: s.serie,
+                  }}
                 />
               ) : (
                 <>

@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
-import { Square, Timer } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Play, Square } from 'lucide-react'
 import { Campo } from './ui'
-import { cn, vibrar } from '@/lib/utils'
+import { useTemporizador, type TareaSerie } from '@/hooks/useTemporizador'
+import { cn, reloj } from '@/lib/utils'
 
 /** "45" → 45 · "1:30" → 90 · "20:00" → 1200 */
 export function segundosDesdeTexto(texto: string): number | null {
@@ -27,54 +28,66 @@ export function textoDesdeSegundos(segundos: number | null): string {
 }
 
 /**
- * Campo para los ejercicios que se miden aguantando: se puede escribir el
- * tiempo (en segundos o mm:ss) o cronometrarlo, que en mitad de una plancha es
- * bastante más cómodo que contar de cabeza.
+ * Campo de los ejercicios que se miden aguantando. Se puede escribir el tiempo
+ * o pulsar ▶ al empezar la serie: si hay un objetivo cuenta atrás y avisa con
+ * alarma al llegar a cero; si no lo hay, cronometra hacia arriba. En los dos
+ * casos manda el temporizador global, así que sigue vivo aunque te vayas a otra
+ * pantalla.
  */
 export function CampoTiempo({
   valor,
   onCambiar,
   objetivo,
   etiqueta,
+  tarea,
+  nombreEjercicio,
 }: {
   valor: number | null
   onCambiar: (segundos: number | null) => void
-  /** los segundos que pide el plan, para el marcador del cronómetro */
+  /** los segundos que pide el plan, para prerrellenar y para la cuenta atrás */
   objetivo?: number | null
   etiqueta: string
+  tarea: TareaSerie
+  nombreEjercicio: string
 }) {
+  const t = useTemporizador()
   const [texto, setTexto] = useState(() => textoDesdeSegundos(valor))
-  const [corriendo, setCorriendo] = useState(false)
-  const inicioRef = useRef(0)
+
+  const esLaMia =
+    t.activo &&
+    t.tarea?.sesionId === tarea.sesionId &&
+    t.tarea?.slug === tarea.slug &&
+    t.tarea?.serie === tarea.serie
+
+  const corriendo = esLaMia && !t.terminado
 
   // Si el valor cambia por fuera (al cargar la sesión), el campo se pone al día
   useEffect(() => {
     if (!corriendo) setTexto(textoDesdeSegundos(valor))
   }, [valor, corriendo])
 
-  useEffect(() => {
-    if (!corriendo) return
-    const t = setInterval(() => {
-      const va = Math.round((Date.now() - inicioRef.current) / 1000)
-      setTexto(textoDesdeSegundos(va))
-      if (objetivo && va === objetivo) vibrar([200, 80, 200])
-    }, 200)
-    return () => clearInterval(t)
-  }, [corriendo, objetivo])
-
   const arrancar = () => {
-    inicioRef.current = Date.now()
-    setCorriendo(true)
-    vibrar(60)
+    const escrito = segundosDesdeTexto(texto)
+    const segundos = escrito && escrito > 0 ? escrito : (objetivo ?? 0)
+    t.iniciar({
+      modo: 'serie',
+      segundos: segundos > 0 ? segundos : undefined,
+      etiqueta: `${nombreEjercicio} · serie ${tarea.serie}`,
+      tarea,
+    })
   }
 
+  // Parar a mano vale lo aguantado de verdad, no lo que decía el plan
   const parar = () => {
-    setCorriendo(false)
-    const va = Math.round((Date.now() - inicioRef.current) / 1000)
-    onCambiar(va)
-    setTexto(textoDesdeSegundos(va))
-    vibrar([120, 60, 120])
+    const contados = Math.round(t.transcurrido)
+    onCambiar(contados)
+    setTexto(textoDesdeSegundos(contados))
+    t.cerrar()
   }
+
+  const enPantalla = corriendo
+    ? reloj(t.cuentaAtras ? t.restante : t.transcurrido)
+    : texto
 
   return (
     <div className="flex flex-1 items-center gap-2">
@@ -82,7 +95,7 @@ export function CampoTiempo({
         type="text"
         inputMode="numeric"
         readOnly={corriendo}
-        value={texto}
+        value={enPantalla}
         onChange={(e) => setTexto(e.target.value)}
         onBlur={() => {
           const s = segundosDesdeTexto(texto)
@@ -99,8 +112,8 @@ export function CampoTiempo({
       <button
         type="button"
         onClick={corriendo ? parar : arrancar}
-        aria-label={corriendo ? 'Parar el cronómetro' : 'Cronometrar'}
-        title={corriendo ? 'Parar' : 'Cronometrar'}
+        aria-label={corriendo ? 'Parar' : 'Empezar la serie'}
+        title={corriendo ? 'Parar' : 'Empezar la serie y avisar al terminar'}
         className={cn(
           'grid size-11 shrink-0 place-items-center rounded-xl border transition',
           corriendo
@@ -108,7 +121,7 @@ export function CampoTiempo({
             : 'border-[var(--color-borde)] text-[var(--color-suave)]',
         )}
       >
-        {corriendo ? <Square size={16} /> : <Timer size={18} />}
+        {corriendo ? <Square size={16} /> : <Play size={18} />}
       </button>
     </div>
   )

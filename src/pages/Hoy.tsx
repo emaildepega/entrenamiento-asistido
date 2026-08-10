@@ -11,11 +11,11 @@ import {
 import { toast } from 'sonner'
 import { EncabezadoPagina } from '@/components/EncabezadoPagina'
 import { TarjetaEjercicio } from '@/components/TarjetaEjercicio'
-import { TemporizadorDescanso } from '@/components/TemporizadorDescanso'
 import { TemporizadorIntervalos } from '@/components/TemporizadorIntervalos'
 import { AreaTexto, Boton, Campo, Cargando, Etiqueta, Tarjeta } from '@/components/ui'
 import { usePlanActivo } from '@/hooks/usePlan'
 import { useAjustes } from '@/hooks/useAjustes'
+import { useTemporizador } from '@/hooks/useTemporizador'
 import { useWakeLock } from '@/hooks/useWakeLock'
 import {
   abrirSesion,
@@ -46,8 +46,8 @@ export default function Hoy() {
 
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [medias, setMedias] = useState<MediaEjercicio[]>([])
-  const { ajustes, cambiar: cambiarAjustes } = useAjustes()
-  const [arrancarDescanso, setArrancarDescanso] = useState<number | null>(null)
+  const { ajustes } = useAjustes()
+  const temporizador = useTemporizador()
   const [intervalosAbiertos, setIntervalosAbiertos] = useState(false)
   const [cerrando, setCerrando] = useState(false)
   const [duracion, setDuracion] = useState('')
@@ -284,7 +284,12 @@ export default function Hoy() {
                       e.prescripcion,
                     )}
                     sesionId={sesion.id}
-                    onSerieMarcada={() => setArrancarDescanso(Date.now())}
+                    onSerieMarcada={() =>
+                      temporizador.iniciar({
+                        modo: 'descanso',
+                        segundos: ajustes.descanso_seg,
+                      })
+                    }
                     onMediaCambiada={() => void cargarMedias()}
                   />
                 ))}
@@ -372,13 +377,6 @@ export default function Hoy() {
       >
         ¿Hoy entrenas otro día?
       </button>
-
-      <TemporizadorDescanso
-        segundos={ajustes.descanso_seg}
-        onCambiarSegundos={(s) => cambiarAjustes({ descanso_seg: s })}
-        arrancarEn={arrancarDescanso}
-        onCerrar={() => setArrancarDescanso(null)}
-      />
 
       {intervalosAbiertos && intervalo && (
         <TemporizadorIntervalos

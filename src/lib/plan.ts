@@ -160,15 +160,51 @@ export function seriesYRepsDe(texto: string): {
 }
 
 /**
- * Cómo medir un ejercicio: lo que diga el plan y, si no lo dice, lo que se
- * deduzca de su prescripción (si habla de segundos, es de aguantar).
+ * Isométricos: se aguantan, no se repiten. Un plan escrito a mano casi nunca
+ * dice "30 s" en la plancha (pone "3 series manteniendo la posición"), así que
+ * el nombre es la única pista. Siempre se puede corregir desde el plan.
+ */
+const NOMBRES_DE_AGUANTAR = [
+  'plancha',
+  'plank',
+  'hollow',
+  'isometric',
+  'wall sit',
+  'silla contra la pared',
+  'dead hang',
+  'colgarse',
+  'colgado',
+  'copenhague',
+  'paseo del granjero',
+  'farmer',
+]
+
+/**
+ * Minúsculas, sin tildes y con espacios simples, para comparar nombres escritos
+ * de cualquier manera. Se apoya en `slugificar` para no repetir la limpieza.
+ */
+function normalizar(texto: string): string {
+  return slugificar(texto).replace(/-/g, ' ')
+}
+
+/**
+ * Cómo medir un ejercicio: lo que diga el plan; si no lo dice, lo que se
+ * deduzca de su prescripción (si habla de segundos, es de aguantar) y, en
+ * último término, de su nombre.
  */
 export function medicionDe(
-  ejercicio: { medicion?: Medicion },
+  ejercicio: { medicion?: Medicion; nombre?: string },
   prescripcion: string,
 ): Medicion {
   if (ejercicio.medicion) return ejercicio.medicion
-  return seriesYRepsDe(prescripcion).segundos !== null ? 'tiempo' : 'reps_peso'
+  if (seriesYRepsDe(prescripcion).segundos !== null) return 'tiempo'
+
+  const nombre = normalizar(ejercicio.nombre ?? '')
+  if (NOMBRES_DE_AGUANTAR.some((clave) => nombre.includes(clave))) {
+    return 'tiempo'
+  }
+
+  return 'reps_peso'
 }
 
 /** Slug estable a partir del nombre, para enlazar el histórico entre planes. */

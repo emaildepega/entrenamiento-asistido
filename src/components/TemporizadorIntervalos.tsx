@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Pause, Play, SkipForward, X } from 'lucide-react'
 import { Boton } from './ui'
-import { reloj, vibrar } from '@/lib/utils'
+import { pitidoCorto } from '@/lib/alarma'
+import { reloj } from '@/lib/utils'
 import { useWakeLock } from '@/hooks/useWakeLock'
 import type { Intervalo } from '@/lib/tipos'
 
@@ -73,7 +74,7 @@ export function TemporizadorIntervalos({
   const estilo = ESTILO_FASE[fase]
 
   const avanzar = () => {
-    vibrar(fase === 'trabajo' ? [400] : [180, 80, 180])
+    pitidoCorto(fase !== 'trabajo')
     const siguiente = indice + 1
     setIndice(siguiente)
     if (siguiente < tramos.length) {

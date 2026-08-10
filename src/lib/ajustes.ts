@@ -3,9 +3,18 @@ import { supabase, hayNube } from './supabase'
 export interface Ajustes {
   tema: 'oscuro' | 'claro'
   descanso_seg: number
+  /** pitidos al terminar un temporizador */
+  sonido: boolean
+  /** vibración al terminar un temporizador */
+  vibracion: boolean
 }
 
-export const AJUSTES_POR_DEFECTO: Ajustes = { tema: 'oscuro', descanso_seg: 90 }
+export const AJUSTES_POR_DEFECTO: Ajustes = {
+  tema: 'oscuro',
+  descanso_seg: 90,
+  sonido: true,
+  vibracion: true,
+}
 
 const CLAVE_LOCAL = 'ea:ajustes'
 
@@ -57,7 +66,7 @@ export async function bajarAjustes(): Promise<Ajustes | null> {
 
   const { data, error } = await supabase
     .from('ajustes')
-    .select('tema, descanso_seg')
+    .select('tema, descanso_seg, sonido, vibracion')
     .eq('user_id', userId)
     .maybeSingle()
 

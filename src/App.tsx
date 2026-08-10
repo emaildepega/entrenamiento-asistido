@@ -11,6 +11,7 @@ import { ProveedorTemporizador } from '@/hooks/useTemporizador'
 import { sincronizar } from '@/lib/sync'
 import { sincronizarAjustes } from '@/hooks/useAjustes'
 import { desbloquearAudio } from '@/lib/alarma'
+import { sincronizarSiToca } from '@/lib/strava'
 import { configuracionRota, errorConfiguracion } from '@/lib/supabase'
 
 const Hoy = lazy(() => import('@/pages/Hoy'))
@@ -21,6 +22,7 @@ const Ajustes = lazy(() => import('@/pages/Ajustes'))
 const Ejercicio = lazy(() => import('@/pages/Ejercicio'))
 const Historial = lazy(() => import('@/pages/Historial'))
 const PlanDetalle = lazy(() => import('@/pages/PlanDetalle'))
+const Strava = lazy(() => import('@/pages/Strava'))
 const Entrar = lazy(() => import('@/pages/Entrar'))
 
 export default function App() {
@@ -34,6 +36,7 @@ export default function App() {
     yaSincronizado.current = usuario
 
     void sincronizarAjustes()
+    void sincronizarSiToca()
     void sincronizar().then((r) => {
       if (r.errores > 0) {
         toast.warning(
@@ -115,6 +118,7 @@ export default function App() {
                 <Route path="/planes" element={<Planes />} />
                 <Route path="/plan/:id" element={<PlanDetalle />} />
                 <Route path="/ajustes" element={<Ajustes />} />
+                <Route path="/strava" element={<Strava />} />
                 <Route path="/ejercicio/:slug" element={<Ejercicio />} />
               </Routes>
             </Suspense>

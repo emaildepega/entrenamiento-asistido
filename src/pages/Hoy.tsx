@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { parseISO } from 'date-fns'
 import {
   AlertTriangle,
+  Bike,
   CalendarPlus,
   ClipboardList,
   Flag,
@@ -29,9 +30,10 @@ import {
   posicionEnPlan,
   prescripcionDe,
 } from '@/lib/plan'
+import { actividadesStrava, type ActividadStrava } from '@/lib/strava'
 import { siguienteLunes } from '@/lib/seed'
 import { iconoDeDia } from '@/lib/iconos'
-import { fechaCorta, fechaLarga } from '@/lib/utils'
+import { duracionLarga, fechaCorta, fechaLarga } from '@/lib/utils'
 import type { MediaEjercicio, Sesion } from '@/lib/tipos'
 
 export default function Hoy() {
@@ -52,6 +54,7 @@ export default function Hoy() {
   const [cerrando, setCerrando] = useState(false)
   const [duracion, setDuracion] = useState('')
   const [notas, setNotas] = useState('')
+  const [deStrava, setDeStrava] = useState<ActividadStrava | null>(null)
 
   const posicion = useMemo(
     () => (plan ? posicionEnPlan(plan, fecha) : null),
@@ -85,6 +88,31 @@ export default function Hoy() {
       vivo = false
     }
   }, [plan, posicion, dia, fecha])
+
+  // Lo que Strava haya registrado ese día: sirve para no tener que teclear la
+  // duración de una salida que ya está medida.
+  useEffect(() => {
+    const iso = aISO(fecha)
+    let vivo = true
+    void actividadesStrava(iso).then((lista) => {
+      if (!vivo) return
+      const delDia = lista.filter((a) => a.fecha_local === iso)
+      // la más larga del día, que es la que representa la sesión
+      delDia.sort((a, b) => b.segundos_movimiento - a.segundos_movimiento)
+      setDeStrava(delDia[0] ?? null)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [fecha])
+
+  // Si no has puesto duración a mano, se propone la de Strava
+  useEffect(() => {
+    if (!deStrava) return
+    setDuracion(
+      (actual) => actual || String(Math.round(deStrava.segundos_movimiento / 60)),
+    )
+  }, [deStrava])
 
   // Mientras la sesión está abierta y no cerrada, la pantalla no se apaga
   useWakeLock(sesion !== null && sesion.estado === 'parcial')
@@ -262,6 +290,26 @@ export default function Hoy() {
             )}
           </div>
 
+          {deStrava && (
+            <Tarjeta className="flex items-start gap-3 border-[#fc4c02]/40 bg-[#fc4c02]/10">
+              <Bike size={20} className="mt-0.5 shrink-0 text-[#fc4c02]" />
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-[var(--color-suave)] uppercase">
+                  Hoy en Strava
+                </p>
+                <p className="truncate font-semibold">{deStrava.nombre}</p>
+                <p className="mt-0.5 text-sm text-[var(--color-suave)]">
+                  {duracionLarga(deStrava.segundos_movimiento)} ·{' '}
+                  {(deStrava.metros / 1000).toFixed(1)} km
+                  {deStrava.desnivel_m > 0 &&
+                    ` · ${Math.round(deStrava.desnivel_m)} m`}
+                  {deStrava.pulso_medio &&
+                    ` · ${Math.round(deStrava.pulso_medio)} ppm`}
+                </p>
+              </div>
+            </Tarjeta>
+          )}
+
           {intervalo && (
             <Boton className="w-full" onClick={() => setIntervalosAbiertos(true)}>
               <Timer size={20} />
@@ -337,6 +385,11 @@ export default function Hoy() {
                   onChange={(e) => setDuracion(e.target.value)}
                   placeholder="60"
                 />
+                {deStrava && (
+                  <p className="mt-1 text-xs text-[var(--color-suave)]">
+                    Propuesto por Strava: «{deStrava.nombre}»
+                  </p>
+                )}
               </div>
               <div>
                 <label

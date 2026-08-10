@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { EncabezadoPagina } from '@/components/EncabezadoPagina'
+import { TarjetaStrava } from '@/components/TarjetaStrava'
 import { Boton, Campo, Tarjeta } from '@/components/ui'
 import { useAjustes } from '@/hooks/useAjustes'
 import { useAuth } from '@/hooks/useAuth'
@@ -211,6 +212,8 @@ export default function Ajustes() {
             <span className="text-sm text-[var(--color-suave)]">segundos</span>
           </div>
         </Tarjeta>
+
+        {hayNube && sesion && <TarjetaStrava />}
 
         <Tarjeta>
           <p className="mb-1 text-xs font-bold text-[var(--color-suave)] uppercase">

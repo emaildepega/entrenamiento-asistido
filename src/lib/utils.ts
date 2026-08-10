@@ -26,6 +26,15 @@ export function reloj(segundos: number): string {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 }
 
+/** Duración larga en lenguaje normal: "1 h 42 min", "48 min". */
+export function duracionLarga(segundos: number): string {
+  const total = Math.round(segundos / 60)
+  const h = Math.floor(total / 60)
+  const m = total % 60
+  if (h === 0) return `${m} min`
+  return m === 0 ? `${h} h` : `${h} h ${m} min`
+}
+
 export function vibrar(patron: number | number[]) {
   if ('vibrate' in navigator) {
     try {

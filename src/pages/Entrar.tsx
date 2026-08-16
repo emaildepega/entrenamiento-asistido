@@ -42,6 +42,18 @@ export default function Entrar({ seAtasco = false }: { seAtasco?: boolean }) {
       }
     } catch (err) {
       const mensaje = err instanceof Error ? err.message : 'Error al entrar'
+
+      // El navegador se queja de la cabecera, no de la contraseña: lo que está
+      // roto es lo que hay guardado aquí. Se limpia solo y se vuelve a cargar.
+      if (mensaje.includes('ISO-8859-1') || mensaje.includes('RequestInit')) {
+        toast.error('Los datos guardados en este navegador estaban dañados', {
+          description: 'Se han limpiado. Ahora sí puedes entrar.',
+          duration: 8000,
+        })
+        await olvidarSesion()
+        return
+      }
+
       toast.error(
         mensaje.includes('Invalid login')
           ? 'Correo o contraseña incorrectos'

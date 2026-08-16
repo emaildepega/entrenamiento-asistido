@@ -28,6 +28,46 @@ function revisarConfiguracion(): string | null {
 
 export const errorConfiguracion = revisarConfiguracion()
 
+/**
+ * La sesión se guarda en el navegador. Si esos datos se corrompen (un cierre a
+ * destiempo, un almacenamiento lleno), la primera petición revienta con un
+ * error que no dice nada útil —"String contains non ISO-8859-1 code point"— y
+ * la app se queda sin poder entrar, ni siquiera escribiendo bien la
+ * contraseña: el token roto viaja en una cabecera HTTP, donde solo caben
+ * caracteres normales.
+ *
+ * Se comprueba antes de arrancar y lo que no tenga buena pinta se tira. Lo
+ * peor que puede pasar es tener que volver a entrar, que es exactamente lo que
+ * hacía falta.
+ */
+function tirarSesionCorrupta() {
+  try {
+    for (const clave of Object.keys(localStorage)) {
+      if (!clave.startsWith('sb-')) continue
+      const valor = localStorage.getItem(clave)
+      if (!valor) continue
+
+      // Nada de lo que guarda Supabase lleva caracteres fuera de Latin-1
+      let roto = [...valor].some((c) => c.charCodeAt(0) > 255)
+
+      // Y el token, además, tiene que seguir siendo JSON válido
+      if (!roto && clave.endsWith('-auth-token')) {
+        try {
+          JSON.parse(valor)
+        } catch {
+          roto = true
+        }
+      }
+
+      if (roto) localStorage.removeItem(clave)
+    }
+  } catch {
+    /* almacenamiento bloqueado: no hay nada que limpiar */
+  }
+}
+
+tirarSesionCorrupta()
+
 export const supabase: SupabaseClient | null =
   url && clave && !errorConfiguracion ? createClient(url.trim(), clave.trim()) : null
 

@@ -68,7 +68,12 @@ export function useAuth(): EstadoAuth {
   return { cargando, sesion, modoLocal: !hayNube, seAtasco }
 }
 
-/** Última bala: borra la sesión guardada para poder entrar de cero. */
+/**
+ * Última bala: deja el navegador como recién instalado. Borra la sesión
+ * guardada y, además, la versión cacheada de la app: si el problema venía de
+ * una versión vieja que el navegador seguía sirviendo, recargar sin tirarla no
+ * arregla nada. Los datos no se pierden: están en la cuenta.
+ */
 export async function olvidarSesion() {
   try {
     for (const clave of Object.keys(localStorage)) {
@@ -78,5 +83,16 @@ export async function olvidarSesion() {
   } catch {
     /* da igual: lo importante es que las claves ya no están */
   }
+
+  try {
+    const registros =
+      (await navigator.serviceWorker?.getRegistrations?.()) ?? []
+    await Promise.all(registros.map((r) => r.unregister()))
+    const nombres = (await caches?.keys?.()) ?? []
+    await Promise.all(nombres.map((n) => caches.delete(n)))
+  } catch {
+    /* sin service worker que tirar */
+  }
+
   location.reload()
 }

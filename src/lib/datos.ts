@@ -183,12 +183,43 @@ export async function abrirSesion(
     dia_key: diaKey,
     semana,
     estado: 'parcial',
+    empezada_en: null,
     duracion_min: null,
     notas: null,
     created_at: new Date().toISOString(),
   }
   await guardarSesion(nueva)
   return nueva
+}
+
+/** Arranca el cronómetro del entreno. La hora vive en la sesión, no aquí. */
+export async function empezarEntrenamiento(sesion: Sesion): Promise<Sesion> {
+  const empezada = { ...sesion, empezada_en: new Date().toISOString() }
+  await guardarSesion(empezada)
+  return empezada
+}
+
+/** Se pulsó sin querer, o se quedó abierto de ayer: se olvida el arranque. */
+export async function olvidarArranque(sesion: Sesion): Promise<Sesion> {
+  const limpia = { ...sesion, empezada_en: null }
+  await guardarSesion(limpia)
+  return limpia
+}
+
+/**
+ * Minutos cronometrados desde que se pulsó empezar. Devuelve null si no se
+ * arrancó, y también si lleva abierto un disparate: eso no es un entreno de
+ * nueve horas, es que se olvidó cerrarlo.
+ */
+export const LIMITE_ENTRENO_MIN = 5 * 60
+
+export function minutosCronometrados(sesion: Sesion | null): number | null {
+  if (!sesion?.empezada_en) return null
+  const minutos = Math.round(
+    (Date.now() - new Date(sesion.empezada_en).getTime()) / 60000,
+  )
+  if (minutos < 0 || minutos > LIMITE_ENTRENO_MIN) return null
+  return minutos
 }
 
 export async function guardarSesion(sesion: Sesion): Promise<void> {

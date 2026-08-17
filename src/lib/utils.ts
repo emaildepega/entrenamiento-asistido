@@ -26,6 +26,18 @@ export function reloj(segundos: number): string {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 }
 
+/** Cronómetro que va subiendo: "12:34" y, pasada la hora, "1:12:34". */
+export function cronometro(segundos: number): string {
+  const s = Math.max(0, Math.floor(segundos))
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const seg = s % 60
+  const dosCifras = (n: number) => String(n).padStart(2, '0')
+  return h > 0
+    ? `${h}:${dosCifras(m)}:${dosCifras(seg)}`
+    : `${dosCifras(m)}:${dosCifras(seg)}`
+}
+
 /** Duración larga en lenguaje normal: "1 h 42 min", "48 min". */
 export function duracionLarga(segundos: number): string {
   const total = Math.round(segundos / 60)

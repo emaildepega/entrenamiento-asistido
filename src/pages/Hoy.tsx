@@ -7,6 +7,8 @@ import {
   CalendarPlus,
   ClipboardList,
   Flag,
+  Play,
+  RotateCcw,
   Timer,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -21,7 +23,11 @@ import { useWakeLock } from '@/hooks/useWakeLock'
 import {
   abrirSesion,
   cerrarSesion,
+  empezarEntrenamiento,
   guardarPlan,
+  LIMITE_ENTRENO_MIN,
+  minutosCronometrados,
+  olvidarArranque,
   todasLasMedias,
 } from '@/lib/datos'
 import {
@@ -33,7 +39,7 @@ import {
 import { actividadesStrava, type ActividadStrava } from '@/lib/strava'
 import { siguienteLunes } from '@/lib/seed'
 import { iconoDeDia } from '@/lib/iconos'
-import { duracionLarga, fechaCorta, fechaLarga } from '@/lib/utils'
+import { cronometro, duracionLarga, fechaCorta, fechaLarga } from '@/lib/utils'
 import type { MediaEjercicio, Sesion } from '@/lib/tipos'
 
 export default function Hoy() {
@@ -106,13 +112,22 @@ export default function Hoy() {
     }
   }, [fecha])
 
-  // Si no has puesto duración a mano, se propone la de Strava
+  // Mientras el entreno corre, el reloj de pantalla se refresca cada segundo.
+  // El tiempo NO se cuenta aquí: se calcula desde la hora guardada, así que
+  // cambiar de pantalla, recargar o seguir en el ordenador da igual.
+  const [, setLatido] = useState(0)
+  const enMarcha = Boolean(sesion?.empezada_en) && sesion?.estado === 'parcial'
   useEffect(() => {
-    if (!deStrava) return
-    setDuracion(
-      (actual) => actual || String(Math.round(deStrava.segundos_movimiento / 60)),
-    )
-  }, [deStrava])
+    if (!enMarcha) return
+    const t = window.setInterval(() => setLatido((n) => n + 1), 1000)
+    return () => window.clearInterval(t)
+  }, [enMarcha])
+
+  const segundosEntrenando = sesion?.empezada_en
+    ? Math.max(0, (Date.now() - new Date(sesion.empezada_en).getTime()) / 1000)
+    : 0
+  const seQuedoAbierto =
+    enMarcha && segundosEntrenando / 60 > LIMITE_ENTRENO_MIN
 
   // Mientras la sesión está abierta y no cerrada, la pantalla no se apaga
   useWakeLock(sesion !== null && sesion.estado === 'parcial')
@@ -184,6 +199,32 @@ export default function Hoy() {
   const prescripcion = dia ? prescripcionDe(dia, posicion.semana) : ''
   const intervalo = dia ? intervaloDe(dia, posicion.semana) : null
   const tieneEjercicios = (dia?.ejercicios?.length ?? 0) > 0
+
+  const arrancarEntreno = async () => {
+    if (!sesion) return
+    setSesion(await empezarEntrenamiento(sesion))
+  }
+
+  const cancelarArranque = async () => {
+    if (!sesion) return
+    setSesion(await olvidarArranque(sesion))
+  }
+
+  /**
+   * Al ir a cerrar se propone la duración en vez de preguntarla a secas: manda
+   * el cronómetro y, si no se usó, lo que diga Strava de ese día.
+   */
+  const abrirCierre = () => {
+    const cronometrados = minutosCronometrados(sesion)
+    if (cronometrados !== null) setDuracion(String(cronometrados))
+    else if (deStrava) {
+      setDuracion(
+        (actual) =>
+          actual || String(Math.round(deStrava.segundos_movimiento / 60)),
+      )
+    }
+    setCerrando(true)
+  }
 
   const terminarSesion = async () => {
     if (!sesion) return
@@ -317,6 +358,69 @@ export default function Hoy() {
             </Boton>
           )}
 
+          {/* ------------------------------------------ empezar / cronómetro */}
+          {sesion && sesion.estado !== 'hecha' && (
+            <>
+              {!sesion.empezada_en && (
+                <Boton
+                  className="w-full"
+                  onClick={() => void arrancarEntreno()}
+                >
+                  <Play size={20} />
+                  Empezar entrenamiento
+                </Boton>
+              )}
+
+              {enMarcha && !seQuedoAbierto && (
+                <Tarjeta className="flex items-center gap-3 border-[var(--color-acento)]/40 bg-[var(--color-acento)]/10">
+                  <span className="relative flex size-2.5 shrink-0">
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-[var(--color-acento)] opacity-75" />
+                    <span className="relative inline-flex size-2.5 rounded-full bg-[var(--color-acento)]" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-[var(--color-suave)] uppercase">
+                      Entrenando
+                    </p>
+                    <p className="font-mono text-2xl leading-tight font-black tabular-nums">
+                      {cronometro(segundosEntrenando)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => void cancelarArranque()}
+                    className="shrink-0 rounded-lg px-2 py-1 text-xs font-bold text-[var(--color-suave)] underline"
+                  >
+                    No he empezado aún
+                  </button>
+                </Tarjeta>
+              )}
+
+              {seQuedoAbierto && (
+                <Tarjeta className="flex gap-3 border-amber-500/40 bg-amber-500/10">
+                  <AlertTriangle
+                    size={20}
+                    className="mt-0.5 shrink-0 text-amber-400"
+                  />
+                  <div className="text-sm">
+                    <p className="font-bold">El cronómetro se quedó abierto</p>
+                    <p className="mt-1 text-[var(--color-suave)]">
+                      Lleva contando desde hace más de {LIMITE_ENTRENO_MIN / 60}{' '}
+                      horas, así que no vale como duración. Ponlo a cero y
+                      empieza otra vez, o escribe los minutos al terminar.
+                    </p>
+                    <Boton
+                      variante="fantasma"
+                      className="mt-1 min-h-10 px-0"
+                      onClick={() => void cancelarArranque()}
+                    >
+                      <RotateCcw size={16} />
+                      Poner a cero
+                    </Boton>
+                  </div>
+                </Tarjeta>
+              )}
+            </>
+          )}
+
           {/* En PC caben dos ejercicios por fila sin apretar las fotos */}
           {tieneEjercicios && (
             <div className="grid gap-4 lg:grid-cols-2">
@@ -385,10 +489,16 @@ export default function Hoy() {
                   onChange={(e) => setDuracion(e.target.value)}
                   placeholder="60"
                 />
-                {deStrava && (
+                {minutosCronometrados(sesion) !== null ? (
                   <p className="mt-1 text-xs text-[var(--color-suave)]">
-                    Propuesto por Strava: «{deStrava.nombre}»
+                    Cronometrado desde que empezaste. Puedes corregirlo.
                   </p>
+                ) : (
+                  deStrava && (
+                    <p className="mt-1 text-xs text-[var(--color-suave)]">
+                      Propuesto por Strava: «{deStrava.nombre}»
+                    </p>
+                  )
                 )}
               </div>
               <div>
@@ -416,9 +526,11 @@ export default function Hoy() {
               </div>
             </Tarjeta>
           ) : (
-            <Boton className="w-full" onClick={() => setCerrando(true)}>
+            <Boton className="w-full" onClick={abrirCierre}>
               <Flag size={20} />
-              Terminar sesión
+              {enMarcha && !seQuedoAbierto
+                ? `Terminar entrenamiento · ${cronometro(segundosEntrenando)}`
+                : 'Terminar entrenamiento'}
             </Boton>
           )}
         </div>

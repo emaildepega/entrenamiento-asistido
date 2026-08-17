@@ -113,6 +113,8 @@ export interface Sesion {
   dia_key: DiaKey
   semana: number
   estado: EstadoSesion
+  /** cuándo se pulsó "Empezar entrenamiento"; null si no se cronometró */
+  empezada_en: string | null
   duracion_min: number | null
   notas: string | null
   created_at: string
